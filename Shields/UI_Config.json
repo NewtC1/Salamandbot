@@ -1,0 +1,38 @@
+{
+	"output_file": "settings.json",
+	"cd_response":{
+		"type": "textbox",
+		"value": "The command is still on cooldown",
+		"label": "Cooldown Response",
+		"tooltip": "The message that the bot will display.",
+		"group": "Cooldown"
+	},
+	"Command": {
+		"type": "textbox",
+		"value": "!checkOptions",
+		"label": "Command Name",
+		"tooltip": "The command the bot will respond to",
+		"group": "General"
+	},
+	"OnlyLive": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Only play while live?",
+		"tooltip": "Toggles only-live functionality",
+		"group": "General"
+	},
+	"UseCD": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Enable Cooldown",
+		"tooltip": "Toggles cooldown usage",
+		"group": "Cooldown"
+	},
+	"Cost":{
+		"type": "textbox",
+		"value": "0",
+		"label": "Cost",
+		"tooltip": "The cost per use",
+		"group": "General"
+	}
+}

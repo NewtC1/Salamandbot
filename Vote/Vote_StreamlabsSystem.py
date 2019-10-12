@@ -1,0 +1,332 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+# pylint: disable=invalid-name
+"""Allows users to vote on options created by the !addvoteoptions command using currency."""
+import json
+import os, os.path
+import operator
+import time
+import codecs
+from io import open
+
+#---------------------------------------
+# [Required] Script information
+#---------------------------------------
+ScriptName = "Vote"
+Website = "https://www.twitch.tv/newtc"
+Creator = "Newt"
+Version = "1.0.0.0"
+Description = "Allows users to vote on options created by the !addvoteoptions command using currency."
+
+#---------------------------------------
+# Versions
+#---------------------------------------
+"""
+1.0.0.0 - Initial release
+"""
+#---------------------------------------
+# Variables
+#---------------------------------------
+settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
+
+#---------------------------------------
+# Classes
+#---------------------------------------
+class Settings:
+    """
+    Tries to load settings from file if given
+    The 'default' variable names need to match UI_Config"""
+    def __init__(self, settingsFile=None):
+        if settingsFile is not None and os.path.isfile(settingsFile):
+            with codecs.open(settingsFile, encoding='utf-8-sig', mode='r') as f:
+                self.__dict__ = json.load(f, encoding='utf-8-sig')
+
+        else: #set variables if no settings file
+            self.Enabled = True
+            self.OnlyLive = False
+            self.Command = "!vote"
+            self.UseCD = False
+            self.cooldownTime = 600
+            self.cd_response = "{0} the command is still on cooldown for {1} seconds!"
+            self.voteMaximum = 50
+            self.dynamicCooldown = False
+            self.continuousVoting = False
+    def ReloadSettings(self, data):
+        """Reload settings on save through UI"""
+        self.__dict__ = json.loads(data, encoding='utf-8-sig')
+        return
+
+
+    def SaveSettings(self, settingsFile):
+        """Save settings to files (json and js)"""
+        with codecs.open(settingsFile, encoding='utf-8-sig', mode='w+') as f:
+            json.dump(self.__dict__, f, encoding='utf-8-sig')
+        with codecs.open(settingsFile.replace("json", "js"), encoding='utf-8-sig', mode='w+') as f:
+            f.write("var settings = {0};".format(json.dumps(self.__dict__, encoding='utf-8-sig')))
+        return
+
+def ReloadSettings(jsonData):
+    """Reload settings"""
+	# Globals
+    global MySet
+
+	# Reload saved settings
+    MySet.ReloadSettings(jsonData)
+
+	# End of ReloadSettings
+    return
+
+#---------------------------------------
+# [Required] functions
+#---------------------------------------
+def Init():
+    """Required tick function"""
+    # Globals
+    global MySet
+    global m_Active
+    global cooldownList
+    global activeContinuousAdds
+    activeContinuousAdds = dict()
+    cooldownList = dict()
+    m_Active = False
+    # Load in saved settings
+    MySet = Settings(settingsFile)
+
+    # End of Init
+    return
+
+
+def Execute(data):
+    """Required Execute function"""
+    global cooldownList
+    global dynamicValue
+    voteLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
+    retVal = ''
+    looped = False
+    addAmount = 0
+    if data.User in activeContinuousAdds:
+        looped = True
+
+    # does nothing if the stream isn't live with the "OnlyLive" setting ticked
+    if MySet.OnlyLive and Parent.IsLive() is False:
+        return
+
+    #if MySet.continuousVoting:
+    #    retVal += listenForStop(data)
+        # if stop was found.
+    #    if retVal is not '':
+    #        respond(data, retVal)
+    #        return retVal
+
+    if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
+        if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
+            if data.UserName.lower() not in activeContinuousAdds.keys():
+                retVal = 'There is nothing to stop adding to.'
+                respond(data, retVal)
+                return
+            else:
+                del activeContinuousAdds[data.User]
+                retVal = 'You have been removed from the continuous add list.'
+                respond(data, retVal)
+                return
+
+        if (data.GetParamCount() == 3) and ((data.UserName.lower() not in cooldownList.keys()) or (data.GetParam(2).lower() == 'stop' or data.GetParam(2).lower() == 'all')):
+
+            game = data.GetParam(1).lower()
+            amount = data.GetParam(2).lower()
+
+            # security checking for data values
+            target = security_check(game)
+
+            # open the file to read the value from it
+            try:
+                with open(voteLocation + target + '.txt', 'r', encoding = 'utf-8-sig') as vote:
+                    voteData = vote.read().decode('utf-8-sig')
+                    retVal += vote.read()
+            except IOError:
+                retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it.'
+                respond(data, retVal)
+                return
+
+            # check if the user is attempting to do a !vote <name> all
+            if amount.lower() == 'all' and MySet.continuousVoting:
+                # only add anything if the user isn't on the cooldown list.
+                if data.UserName.lower() not in cooldownList.keys():
+                    addAmount = min(Parent.GetPoints(data.User), MySet.voteMaximum)
+                    if data.User not in activeContinuousAdds:
+                        activeContinuousAdds[data.User.lower()] = data
+                        retVal += 'You have been added to the continuous add list and are now adding logs until you run out. '
+                        #retVal += 'User added successfully: '+str(data.User in activeContinuousAdds)
+                else:
+                    # if the user isn't in the add list, add it and add the data
+                    if data.User not in activeContinuousAdds:
+                        activeContinuousAdds[data.User.lower()] = data
+                        retVal = 'You have been added to the continuous add list and are now adding logs until you run out. '
+                        respond(data, retVal)
+                        return
+            # check if the user is attempting to stop adding logs automatically
+            elif amount == 'stop' and MySet.continuousVoting:
+                if data.User in activeContinuousAdds:
+                    retVal += 'You have been removed from the continuous add list for '+str(game)+' '+str(data.User)
+                    respond(data, retVal)
+                    del activeContinuousAdds[data.User]
+                    return
+                else:
+                    retVal += 'You aren\'t on the continuous add list.'
+                    respond(data, retVal)
+                    return
+            else:
+                # verify the amount to add is actually an integer
+                try:
+                    addAmount = int(amount)
+                except ValueError as ve:
+                    retVal += 'That isn\'t an integer. Please vote using an integer.'
+                    respond(data, retVal)
+                    return
+
+            # check the amount is not higher than the user can add.
+            if addAmount > Parent.GetPoints(data.User):
+                retVal += 'Your log pile pales in comparison to the ' + str(addAmount) + ' you wish to add, ' + data.User + '. You only have ' + str(Parent.GetPoints(data.User)) + '. Wait to gather more.'
+                respond(data, retVal)
+
+                # if they're in the auto add list, remove them from that list
+                if data.User in activeContinuousAdds:
+                    del activeContinuousAdds[data.User]
+                return
+
+            # If the user tries to add more than the set maximum, change the amount to add to be that maximum.
+            if addAmount > int(MySet.voteMaximum):
+                retVal += 'Currently the maximum number of logs is %s. Removing this amount from your pool. '%(MySet.voteMaximum)
+                addAmount = int(MySet.voteMaximum)
+                # add users to the continuous add list and create a separate dictionary that keeps track of their cap
+
+            # check the amount is above 0.
+            if addAmount <= 0:
+                retVal = '%i is less than or equal to 0. Please offer at least one log.'%(addAmount)
+                respond(data, retVal)
+
+                # if they're in the auto add list, remove them from that list
+                if data.User in activeContinuousAdds:
+                    del activeContinuousAdds[data.User]
+                return
+
+            # add the vote amount
+            try:
+                voteData = int(voteData) + addAmount
+            except ValueError as ve:
+                respond(data, repr(voteData))
+
+            with open(voteLocation + target + '.txt', 'w') as vote:
+                vote.write(str(voteData))
+
+            Parent.RemovePoints(data.User, data.UserName, addAmount)
+
+            retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. "%(data.User, addAmount, target, voteData)
+            # add a user to a dictionary when they use the command.
+            cooldownList[data.UserName.lower()] = time.time()
+
+            if MySet.dynamicCooldown:
+                dynamicValue = addAmount * 6
+            
+        else:
+            if data.UserName.lower() in cooldownList.keys():
+                seconds_to_wait = 0
+                if MySet.dynamicCooldown:
+                    seconds_to_wait = (cooldownList[data.UserName.lower()] + float(dynamicValue)) - time.time()
+                else:
+                    seconds_to_wait = (cooldownList[data.UserName.lower()] + float(MySet.cooldownTime)) - time.time()
+                retVal += "You have to wait " + str(int(seconds_to_wait)) + " more seconds before you can add logs again."
+            else:
+                retVal += 'Missing the correct number of parameters. Correct usuage is !vote <game> <number of logs>'
+                
+        # sends the final message
+
+        if not looped:
+            respond(data, retVal)
+        # Parent.SendStreamMessage(str(activeContinuousAdds))
+    return
+
+def Tick():
+    """Required tick function"""
+    # Parent.SendStreamMessage('Tick')
+    removals = []
+    global cooldownList
+    for x in cooldownList:
+        if MySet.dynamicCooldown:
+            if time.time() - dynamicValue > cooldownList[x]:
+                removals.append(x)
+        elif time.time() - float(MySet.cooldownTime) > cooldownList[x]:
+            Parent.SendStreamMessage(x + ' ' + str(cooldownList[x]))
+            removals.append(x)
+    
+    # remove the people who have had their cooldowns time out.
+    for each in removals:
+        # if it's in the list of continues adds, resubmit the command that started it.
+
+        #Parent.SendStreamMessage(str(each in activeContinuousAdds.keys()))
+        #Parent.SendStreamMessage(str(each))
+        if each.lower() in activeContinuousAdds:
+            del cooldownList[each]
+            # Parent.SendStreamMessage('Beginning a looped state.')
+            Execute(activeContinuousAdds[each.lower()])
+            # del activeContinuousAdds[each]
+        else:
+            del cooldownList[each]
+
+    return
+
+
+def respond(output):
+    retVal = output
+    # If the original message is from a discord message
+    Parent.SendStreamMessage(str(retVal))
+
+
+def respond(data, output):
+    retVal = output
+    
+    # If the original message is from a discord message
+    if data.IsFromDiscord():
+        # if the original message is from a whisper
+        if data.IsWhisper():
+            Parent.SendDiscordDM(data.User, retVal)
+        else:
+            Parent.SendDiscordMessage(retVal)
+    # If the original message is from a live stream
+    else:
+        if data.IsWhisper():
+            Parent.SendStreamWhisper(data.UserName, retVal)
+        else:
+            Parent.SendStreamMessage(str(retVal))
+
+
+def listenForStop(data):
+    # if it is a chat message
+    #respond(data, 'Start of the listen')
+    if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
+        # if this is the correct format
+        if (data.GetParamCount() == 3) and (data.GetParam(2).lower() == 'stop'):
+            # if the user that sent the command is in the list
+            #respond(data, 'If the user who sent the command is in the list')
+            if data.User in activeContinuousAdds:
+                # removes the user and returns a success
+                #respond(data, 'removes the user')
+                del activeContinuousAdds[data.User]
+                return 'You have been removed from continuous voting for ' + data.GetParam(1)
+            else:
+                return 'You aren\'t currently adding logs continuously.'
+
+    return ''
+
+def vote(data):
+    retval = ''
+
+    return retval
+
+def security_check(input):
+    target = input
+    if '\\' in target:
+        target = target.split('\\')[-1]
+    if '/' in target:
+        target = target.split('/')[-1]
+    return target

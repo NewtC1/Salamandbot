@@ -1,0 +1,59 @@
+{
+	"output_file": "settings.json",
+	"cd_response":{
+		"type": "textbox",
+		"value": "The command is still on cooldown",
+		"label": "Cooldown Response",
+		"tooltip": "The message that the bot will display.",
+		"group": "Cooldown"
+	},
+	"Command": {
+		"type": "textbox",
+		"value": "!checkOptions",
+		"label": "Command Name",
+		"tooltip": "The command the bot will respond to",
+		"group": "General"
+	},
+	"OnlyLive": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Only play while live?",
+		"tooltip": "Toggles only-live functionality",
+		"group": "General"
+	},
+	"UseCD": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Enable Cooldown",
+		"tooltip": "Toggles cooldown usage",
+		"group": "Cooldown"
+	},
+	"cooldownTime":{
+		"type": "textbox",
+		"value": "600",
+		"label": "Command cooldown time",
+		"tooltip": "Controls cooldown duration in seconds.",
+		"group": "Cooldown"
+	},
+	"voteMaximum":{
+		"type": "textbox",
+		"value": "50",
+		"label": "Maximum vote amount",
+		"tooltip": "The limit that users will hit when voting.",
+		"group": "Vote Features"
+	},
+		"dynamicCooldown": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Dynamic Cooldown",
+		"tooltip": "Amount of logs used determines cooldown duration.",
+		"group": "Cooldown"
+	},
+		"continuousVoting": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Continuous voting",
+		"tooltip": "Allows users to continuously vote for an option",
+		"group": "Vote Features"
+	},
+}
