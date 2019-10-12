@@ -20,6 +20,7 @@ from ShadowBoundBear import ShadowBoundBear
 from Spider import Spider
 from Ashvine import Ashvine
 from Bunny import Bunny
+from Thunderjaw import Thunderjaw
 
 
 # ---------------------------------------
@@ -80,7 +81,7 @@ attackers = [Vine(60, 1.0, 5, 1.0, 20, 120), # dpm of 5
              Dragon(300, 1.0, 1000, 1.0, 2000, 3600), # dpm of 200. Reward increases over time, difficult to kill.
              Ashvine(60, 1.0, 30, 1.0, 60, 50), # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
              Bunny(0,0,0,0,0, 1800)] # unspeakably evil
-#attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
+#attackers = [Thunderjaw(1, 1.0, 5, 1.0, 600, 50)]
 currentAttacker = attackers[0]
 
 # ---------------------------------------
