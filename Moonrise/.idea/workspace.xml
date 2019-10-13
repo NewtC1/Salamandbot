@@ -2,10 +2,7 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="7947cc4d-8d46-415c-94e6-12cb6213d609" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Thunderjaw.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Beast.py" beforeDir="false" afterPath="$PROJECT_DIR$/Beast.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Moonrise_StreamlabsSystem.py" beforeDir="false" afterPath="$PROJECT_DIR$/Moonrise_StreamlabsSystem.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/../Vote/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../Vote/.idea/workspace.xml" afterDir="false" />
     </list>
@@ -89,7 +86,9 @@
       <map>
         <entry key="MAIN">
           <value>
-            <State />
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
           </value>
         </entry>
       </map>

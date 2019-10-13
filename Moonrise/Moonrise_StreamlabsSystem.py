@@ -76,8 +76,8 @@ attackers = [Vine(60, 1.0, 5, 1.0, 20, 120), # dpm of 5
              ShadowBoundBear(120, 1.0, 60, 1.0, 300, 300),
              Beast(120, 1.0, 70, 1.0, 100, 300), # dpm of 35, increases over time
              Beast(120, 1.0, 70, 1.0, 100, 300),
-             Colossus(60, 5.0, 700, 1.0, 2000, 1800), # dpm of 140, increases over time
-             Colossus(60, 5.0, 700, 1.0, 2000, 1800),
+             Colossus(60, 5.0, 500, 1.0, 1800, 1800), # dpm of 140, increases over time
+             Colossus(60, 5.0, 500, 1.0, 1800, 1800),
              Dragon(300, 1.0, 1000, 1.0, 2000, 3600), # dpm of 200. Reward increases over time, difficult to kill.
              Ashvine(60, 1.0, 30, 1.0, 60, 50), # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
              Bunny(0,0,0,0,0, 1800)] # unspeakably evil
