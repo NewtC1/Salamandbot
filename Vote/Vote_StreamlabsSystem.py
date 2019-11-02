@@ -122,12 +122,12 @@ def Execute(data):
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
             if data.UserName.lower() not in activeContinuousAdds.keys():
                 retVal = 'There is nothing to stop adding to.'
-                respond(data, retVal)
+                Parent.SendStreamWhisper(data.User, retVal)
                 return
             else:
                 del activeContinuousAdds[data.User]
                 retVal = 'You have been removed from the continuous add list.'
-                respond(data, retVal)
+                Parent.SendStreamWhisper(data.User, retVal)
                 return
 
         if (data.GetParamCount() == 3) and ((data.UserName.lower() not in cooldownList.keys()) or (data.GetParam(2).lower() == 'stop' or data.GetParam(2).lower() == 'all')):
@@ -156,19 +156,19 @@ def Execute(data):
                     if data.User not in activeContinuousAdds:
                         activeContinuousAdds[data.User.lower()] = data
                         retVal += 'You have been added to the continuous add list and are now adding logs until you run out. '
-                        #retVal += 'User added successfully: '+str(data.User in activeContinuousAdds)
+                        Parent.SendStreamWhisper(data.User, retVal)
                 else:
                     # if the user isn't in the add list, add it and add the data
                     if data.User not in activeContinuousAdds:
                         activeContinuousAdds[data.User.lower()] = data
                         retVal = 'You have been added to the continuous add list and are now adding logs until you run out. '
-                        respond(data, retVal)
+                        Parent.SendStreamWhisper(data.User, retVal)
                         return
             # check if the user is attempting to stop adding logs automatically
             elif amount == 'stop' and MySet.continuousVoting:
                 if data.User in activeContinuousAdds:
                     retVal += 'You have been removed from the continuous add list for '+str(game)+' '+str(data.User)
-                    respond(data, retVal)
+                    Parent.SendStreamWhisper(data.User, retVal)
                     del activeContinuousAdds[data.User]
                     return
                 else:
@@ -196,9 +196,32 @@ def Execute(data):
 
             # If the user tries to add more than the set maximum, change the amount to add to be that maximum.
             if addAmount > int(MySet.voteMaximum):
+                # get the number of seconds this will take to finish
+                seconds_to_completion = addAmount/int(MySet.voteMaximum)*int(MySet.cooldownTime)
+                minutes_to_completion = 0
+                if seconds_to_completion > 60:
+                    minutes_to_completion = seconds_to_completion/60
+                    seconds_to_completion = seconds_to_completion%60
                 retVal += 'Currently the maximum number of logs is %s. Removing this amount from your pool. '%(MySet.voteMaximum)
                 addAmount = int(MySet.voteMaximum)
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
+                if data.User not in activeContinuousAdds:
+                    # store the new data as a tuple for another function to deal with.
+                    newData = (data.User.lower(), game, int(data.GetParam(2).lower()) - addAmount)
+                    activeContinuousAdds[data.User.lower()] = newData
+                    addAmount/int(MySet.voteMaximum)
+                    # send users a message to inform them how long logs will add for.
+                    if minutes_to_completion != 0:
+                        Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
+                                                'Logs will continue to add for ' +
+                                                str(minutes_to_completion) + ' minutes and ' +
+                                                str(seconds_to_completion) +
+                                                ' seconds. Type "!vote stop" to stop voting on this choice.')
+                    else:
+                        Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
+                                                'Logs will continue to add for ' +
+                                                str(seconds_to_completion) +
+                                                ' seconds. Type "!vote stop" to stop voting on this choice.')
 
             # check the amount is above 0.
             if addAmount <= 0:
@@ -215,6 +238,7 @@ def Execute(data):
                 voteData = int(voteData) + addAmount
             except ValueError as ve:
                 respond(data, repr(voteData))
+                print()
 
             with open(voteLocation + target + '.txt', 'w') as vote:
                 vote.write(str(voteData))
@@ -230,14 +254,13 @@ def Execute(data):
             
         else:
             if data.UserName.lower() in cooldownList.keys():
-                seconds_to_wait = 0
                 if MySet.dynamicCooldown:
                     seconds_to_wait = (cooldownList[data.UserName.lower()] + float(dynamicValue)) - time.time()
                 else:
                     seconds_to_wait = (cooldownList[data.UserName.lower()] + float(MySet.cooldownTime)) - time.time()
                 retVal += "You have to wait " + str(int(seconds_to_wait)) + " more seconds before you can add logs again."
             else:
-                retVal += 'Missing the correct number of parameters. Correct usuage is !vote <game> <number of logs>'
+                retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of logs>'
                 
         # sends the final message
 
@@ -256,7 +279,7 @@ def Tick():
             if time.time() - dynamicValue > cooldownList[x]:
                 removals.append(x)
         elif time.time() - float(MySet.cooldownTime) > cooldownList[x]:
-            Parent.SendStreamMessage(x + ' ' + str(cooldownList[x]))
+            # Parent.SendStreamMessage(x + ' ' + str(cooldownList[x]))
             removals.append(x)
     
     # remove the people who have had their cooldowns time out.
@@ -267,19 +290,22 @@ def Tick():
         #Parent.SendStreamMessage(str(each))
         if each.lower() in activeContinuousAdds:
             del cooldownList[each]
-            # Parent.SendStreamMessage('Beginning a looped state.')
-            Execute(activeContinuousAdds[each.lower()])
+            #Parent.SendStreamMessage(type(activeContinuousAdds[each.lower()]))
+            data = activeContinuousAdds[each.lower()]
+            if type(data) == tuple:
+                addUntilDone(activeContinuousAdds[each.lower()][0], activeContinuousAdds[each.lower()][1], activeContinuousAdds[each.lower()][2])
+            else:
+                amount = activeContinuousAdds[each.lower()].GetParam(2).lower()
+                target = activeContinuousAdds[each.lower()].GetParam(1).lower()
+                if amount == 'all':
+                    Execute(activeContinuousAdds[each.lower()])
+                else:
+                    addUntilDone(each.lower(), target, int(amount))
             # del activeContinuousAdds[each]
         else:
             del cooldownList[each]
 
     return
-
-
-def respond(output):
-    retVal = output
-    # If the original message is from a discord message
-    Parent.SendStreamMessage(str(retVal))
 
 
 def respond(data, output):
@@ -299,25 +325,6 @@ def respond(data, output):
         else:
             Parent.SendStreamMessage(str(retVal))
 
-
-def listenForStop(data):
-    # if it is a chat message
-    #respond(data, 'Start of the listen')
-    if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
-        # if this is the correct format
-        if (data.GetParamCount() == 3) and (data.GetParam(2).lower() == 'stop'):
-            # if the user that sent the command is in the list
-            #respond(data, 'If the user who sent the command is in the list')
-            if data.User in activeContinuousAdds:
-                # removes the user and returns a success
-                #respond(data, 'removes the user')
-                del activeContinuousAdds[data.User]
-                return 'You have been removed from continuous voting for ' + data.GetParam(1)
-            else:
-                return 'You aren\'t currently adding logs continuously.'
-
-    return ''
-
 def vote(data):
     retval = ''
 
@@ -330,3 +337,36 @@ def security_check(input):
     if '/' in target:
         target = target.split('/')[-1]
     return target
+
+
+# helper function that seperates values from the data Datatype
+def addUntilDone(user, target, amount):
+    voteLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
+
+    global activeContinuousAdds
+    addAmount = 0
+    targetAmount = 0
+    # if the amount left is less than the voteMaximum, vote with the rest of it and remove the user from the list.
+    if amount < int(MySet.voteMaximum):
+        addAmount = amount
+        targetAmount = 0
+        del activeContinuousAdds[user]
+        Parent.SendStreamWhisper(user, 'You have been removed from the continuous add list. You may now added again normally.')
+    else:
+        addAmount = int(MySet.voteMaximum)
+        targetAmount = amount - int(MySet.voteMaximum)
+
+    with open(voteLocation + target + '.txt', 'r', encoding='utf-8-sig') as vote:
+        voteData = int(vote.read().decode('utf-8-sig'))
+    voteData += addAmount
+    with open(voteLocation + target + '.txt', 'w') as vote:
+        vote.write(str(voteData))
+    Parent.RemovePoints(user, user, addAmount)
+
+    Parent.SendStreamMessage(user + ' added ' + str(addAmount) + ' logs to the campfire of ' +
+                             target + '.')
+    # if there's more to add, adjust the data value and add it back in
+    if targetAmount != 0:
+        newData = (user, target, targetAmount)
+        activeContinuousAdds[user] = newData
+        cooldownList[user] = time.time()
