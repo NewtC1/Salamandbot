@@ -137,12 +137,13 @@ def Init():
     global MySet
     global m_Active
     global timerActive
+    global currentAttacker
     timerActive = 0
     m_Active = False
     # Load in saved settings
     MySet = Settings(settingsFile)
     # Set the baseline attacker
-    setNewAttacker(attackers[0])
+    currentAttacker = attackers[0]
     # End of Init
     return
 
