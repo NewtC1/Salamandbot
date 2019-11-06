@@ -155,14 +155,14 @@ def Execute(data):
                     addAmount = min(Parent.GetPoints(data.User), MySet.voteMaximum)
                     if data.User not in activeContinuousAdds:
                         activeContinuousAdds[data.User.lower()] = data
-                        retVal += 'You have been added to the continuous add list and are now adding logs until you run out. '
-                        Parent.SendStreamWhisper(data.User, retVal)
+                        response = 'You have been added to the continuous add list and are now adding logs until you run out. '
+                        Parent.SendStreamWhisper(data.User, response)
                 else:
                     # if the user isn't in the add list, add it and add the data
                     if data.User not in activeContinuousAdds:
                         activeContinuousAdds[data.User.lower()] = data
-                        retVal = 'You have been added to the continuous add list and are now adding logs until you run out. '
-                        Parent.SendStreamWhisper(data.User, retVal)
+                        response = 'You have been added to the continuous add list and are now adding logs until you run out. '
+                        Parent.SendStreamWhisper(data.User, response)
                         return
             # check if the user is attempting to stop adding logs automatically
             elif amount == 'stop' and MySet.continuousVoting:
@@ -199,9 +199,13 @@ def Execute(data):
                 # get the number of seconds this will take to finish
                 seconds_to_completion = addAmount/int(MySet.voteMaximum)*int(MySet.cooldownTime)
                 minutes_to_completion = 0
+                hours_to_completion = 0
                 if seconds_to_completion > 60:
                     minutes_to_completion = seconds_to_completion/60
                     seconds_to_completion = seconds_to_completion%60
+                if minutes_to_completion > 60:
+                    hours_to_completion = minutes_to_completion/60
+                    minutes_to_completion = minutes_to_completion%60
                 retVal += 'Currently the maximum number of logs is %s. Removing this amount from your pool. '%(MySet.voteMaximum)
                 addAmount = int(MySet.voteMaximum)
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
@@ -211,7 +215,14 @@ def Execute(data):
                     activeContinuousAdds[data.User.lower()] = newData
                     addAmount/int(MySet.voteMaximum)
                     # send users a message to inform them how long logs will add for.
-                    if minutes_to_completion != 0:
+                    if hours_to_completion != 0:
+                        Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
+                                                'Logs will continue to add for ' +
+                                                str(hours_to_completion) + 'hours and ' +
+                                                str(minutes_to_completion) + ' minutes and ' +
+                                                str(seconds_to_completion) +
+                                                ' seconds. Type "!vote stop" to stop voting on this choice.')
+                    elif minutes_to_completion != 0:
                         Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
                                                 'Logs will continue to add for ' +
                                                 str(minutes_to_completion) + ' minutes and ' +
@@ -233,26 +244,28 @@ def Execute(data):
                     del activeContinuousAdds[data.User]
                 return
 
-            # add the vote amount
+
             try:
                 voteData = int(voteData) + addAmount
             except ValueError as ve:
                 respond(data, repr(voteData))
                 print()
 
+            # add the vote amount
             with open(voteLocation + target + '.txt', 'w') as vote:
                 vote.write(str(voteData))
-
+            # remove the logs from the user
             Parent.RemovePoints(data.User, data.UserName, addAmount)
-
+            # output the result to the user
             retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. "%(data.User, addAmount, target, voteData)
             # add a user to a dictionary when they use the command.
             cooldownList[data.UserName.lower()] = time.time()
 
             if MySet.dynamicCooldown:
-                dynamicValue = addAmount * 6
+                dynamicValue = addAmount * (int(MySet.cooldownTime)/int(MySet.voteMaximum))
             
         else:
+            # Output the cooldown message
             if data.UserName.lower() in cooldownList.keys():
                 if MySet.dynamicCooldown:
                     seconds_to_wait = (cooldownList[data.UserName.lower()] + float(dynamicValue)) - time.time()
@@ -351,7 +364,7 @@ def addUntilDone(user, target, amount):
         addAmount = amount
         targetAmount = 0
         del activeContinuousAdds[user]
-        Parent.SendStreamWhisper(user, 'You have been removed from the continuous add list. You may now added again normally.')
+        Parent.SendStreamWhisper(user, 'You have been removed from the continuous add list. You may now vote again normally.')
     else:
         addAmount = int(MySet.voteMaximum)
         targetAmount = amount - int(MySet.voteMaximum)
@@ -369,4 +382,4 @@ def addUntilDone(user, target, amount):
     if targetAmount != 0:
         newData = (user, target, targetAmount)
         activeContinuousAdds[user] = newData
-        cooldownList[user] = time.time()
+        cooldownList[user.lower()] = time.time()
