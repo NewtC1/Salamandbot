@@ -236,12 +236,14 @@ def Execute(data):
 
             # check the amount is above 0.
             if addAmount <= 0:
-                retVal = '%i is less than or equal to 0. Please offer at least one log.'%(addAmount)
-                respond(data, retVal)
+                retVal = '%s, %i is less than or equal to 0. Please offer at least one log.'%(data.User, addAmount)
 
                 # if they're in the auto add list, remove them from that list
                 if data.User in activeContinuousAdds:
                     del activeContinuousAdds[data.User]
+                    retVal += ' If you got this message, you ran out of logs and have been removed from auto add.'
+
+                respond(data, retVal)
                 return
 
 
@@ -303,17 +305,28 @@ def Tick():
         #Parent.SendStreamMessage(str(each))
         if each.lower() in activeContinuousAdds:
             del cooldownList[each]
-            #Parent.SendStreamMessage(type(activeContinuousAdds[each.lower()]))
-            data = activeContinuousAdds[each.lower()]
-            if type(data) == tuple:
-                addUntilDone(activeContinuousAdds[each.lower()][0], activeContinuousAdds[each.lower()][1], activeContinuousAdds[each.lower()][2])
-            else:
-                amount = activeContinuousAdds[each.lower()].GetParam(2).lower()
-                target = activeContinuousAdds[each.lower()].GetParam(1).lower()
-                if amount == 'all':
-                    Execute(activeContinuousAdds[each.lower()])
+            # if the users are still present in the viewer list, continue removing logs.
+            if each.lower() in set(Parent.GetViewerList()):
+                #Parent.SendStreamMessage(type(activeContinuousAdds[each.lower()]))
+                data = activeContinuousAdds[each.lower()]
+
+                # if it's a tuple, it's only in the list due to add until amount
+                if type(data) == tuple:
+                    addUntilDone(activeContinuousAdds[each.lower()][0],
+                                 activeContinuousAdds[each.lower()][1],
+                                 activeContinuousAdds[each.lower()][2])
                 else:
-                    addUntilDone(each.lower(), target, int(amount))
+                    amount = activeContinuousAdds[each.lower()].GetParam(2).lower()
+                    target = activeContinuousAdds[each.lower()].GetParam(1).lower()
+                    if amount == 'all':
+                        Execute(activeContinuousAdds[each.lower()])
+                    else:
+                        addUntilDone(each.lower(), target, int(amount))
+
+            # if the user isn't present
+            else:
+                Parent.SendStreamWhisper(each.lower(),
+                                         'You have been removed from the continuous add list due to leaving the stream.')
             # del activeContinuousAdds[each]
         else:
             del cooldownList[each]
