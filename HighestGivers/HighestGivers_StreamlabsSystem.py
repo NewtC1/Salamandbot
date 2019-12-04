@@ -105,6 +105,7 @@ def Execute(data):
                 fileValue = int(f.read().decode('utf-8-sig'))
 
             changedName = filename
+            changedName = changedName.split('\\')[1]
             changedName = changedName.split('.')[0]
             files[changedName] = fileValue
 
@@ -118,7 +119,6 @@ def Execute(data):
             # if the value is higher than 0, add the value
             if (files[x] > 0):
                 retVal += '('+str(y)+' logs)'
-
             retVal += ', '
 
         # sends the final message
