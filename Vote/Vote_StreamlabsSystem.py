@@ -111,13 +111,6 @@ def Execute(data):
     if MySet.OnlyLive and Parent.IsLive() is False:
         return
 
-    #if MySet.continuousVoting:
-    #    retVal += listenForStop(data)
-        # if stop was found.
-    #    if retVal is not '':
-    #        respond(data, retVal)
-    #        return retVal
-
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
             if data.UserName.lower() not in activeContinuousAdds.keys():
@@ -164,6 +157,12 @@ def Execute(data):
                         response = 'You have been added to the continuous add list and are now adding logs until you run out. '
                         Parent.SendStreamWhisper(data.User, response)
                         return
+                    else:
+                        activeContinuousAdds[data.User.lower()] = data
+                        response = 'You are already in the the active list. Type "!vote stop" at any time to stop adding. '
+                        Parent.SendStreamWhisper(data.User, response)
+                        return
+
             # check if the user is attempting to stop adding logs automatically
             elif amount == 'stop' and MySet.continuousVoting:
                 if data.User in activeContinuousAdds:
@@ -186,7 +185,8 @@ def Execute(data):
 
             # check the amount is not higher than the user can add.
             if addAmount > Parent.GetPoints(data.User):
-                retVal += 'Your log pile pales in comparison to the ' + str(addAmount) + ' you wish to add, ' + data.User + '. You only have ' + str(Parent.GetPoints(data.User)) + '. Wait to gather more.'
+                retVal += 'Your log pile pales in comparison to the ' + str(addAmount) + ' you wish to add, ' + \
+                          data.User + '. You only have ' + str(Parent.GetPoints(data.User)) + '. Wait to gather more.'
                 respond(data, retVal)
 
                 # if they're in the auto add list, remove them from that list
@@ -197,7 +197,7 @@ def Execute(data):
             # If the user tries to add more than the set maximum, change the amount to add to be that maximum.
             if addAmount > int(MySet.voteMaximum):
                 # get the number of seconds this will take to finish
-                seconds_to_completion = addAmount/int(MySet.voteMaximum)*int(MySet.cooldownTime)
+                seconds_to_completion = (addAmount-int(MySet.voteMaximum))/int(MySet.voteMaximum)*int(MySet.cooldownTime)
                 minutes_to_completion = 0
                 hours_to_completion = 0
                 if seconds_to_completion > 60:
@@ -218,7 +218,7 @@ def Execute(data):
                     if hours_to_completion != 0:
                         Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
                                                 'Logs will continue to add for ' +
-                                                str(hours_to_completion) + 'hours and ' +
+                                                str(hours_to_completion) + ' hours and ' +
                                                 str(minutes_to_completion) + ' minutes and ' +
                                                 str(seconds_to_completion) +
                                                 ' seconds. Type "!vote stop" to stop voting on this choice.')
@@ -278,7 +278,6 @@ def Execute(data):
                 retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of logs>'
                 
         # sends the final message
-
         if not looped:
             respond(data, retVal)
         # Parent.SendStreamMessage(str(activeContinuousAdds))
@@ -289,7 +288,10 @@ def Tick():
     # Parent.SendStreamMessage('Tick')
     removals = []
     global cooldownList
+    global dynamicValue
+    # if you're on the cooldown list
     for x in cooldownList:
+        # if dynamic cooldown is enabled
         if MySet.dynamicCooldown:
             if time.time() - dynamicValue > cooldownList[x]:
                 removals.append(x)
@@ -351,11 +353,6 @@ def respond(data, output):
         else:
             Parent.SendStreamMessage(str(retVal))
 
-def vote(data):
-    retval = ''
-
-    return retval
-
 def security_check(input):
     target = input
     if '\\' in target:
@@ -366,7 +363,7 @@ def security_check(input):
 
 
 # helper function that seperates values from the data Datatype
-def addUntilDone(user, target, amount):
+def addUntilDone(user, targetgame, amount):
     voteLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
 
     global activeContinuousAdds
@@ -382,17 +379,17 @@ def addUntilDone(user, target, amount):
         addAmount = int(MySet.voteMaximum)
         targetAmount = amount - int(MySet.voteMaximum)
 
-    with open(voteLocation + target + '.txt', 'r', encoding='utf-8-sig') as vote:
+    with open(voteLocation + targetgame + '.txt', 'r', encoding='utf-8-sig') as vote:
         voteData = int(vote.read().decode('utf-8-sig'))
     voteData += addAmount
-    with open(voteLocation + target + '.txt', 'w') as vote:
+    with open(voteLocation + targetgame + '.txt', 'w') as vote:
         vote.write(str(voteData))
     Parent.RemovePoints(user, user, addAmount)
 
     Parent.SendStreamMessage(user + ' added ' + str(addAmount) + ' logs to the campfire of ' +
-                             target + '.')
+                             targetgame + '.')
     # if there's more to add, adjust the data value and add it back in
     if targetAmount != 0:
-        newData = (user, target, targetAmount)
+        newData = (user, targetgame, targetAmount)
         activeContinuousAdds[user] = newData
         cooldownList[user.lower()] = time.time()

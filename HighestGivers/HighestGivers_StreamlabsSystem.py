@@ -8,6 +8,7 @@ import operator
 import time
 import codecs
 import glob
+from io import open
 
 #---------------------------------------
 # [Required] Script information
@@ -90,40 +91,39 @@ def Init():
     return
 
 def Execute(data):
-	"""Required Execute function"""
-	currentMax = 0
-	changedName = 'missingFile'
-	retVal = ''
-	files = dict()
+    """Required Execute function"""
+    currentMax = 0
+    changedName = 'missingFile'
+    retVal = ''
+    files = dict()
 
-	if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
-		
-		for filename in glob.glob('Services/Twitch/Givers/*.txt'):
-			#Load in all the file information we need
-			f = open(filename, 'r')
-			fileValue = int(f.read().translate(None, 'ï»¿'))
-			
-			changedName = filename
-			changedName = changedName.split('\\', 1)[-1]
-			changedName = changedName.split('.')[0]
-			files[changedName] = fileValue
-		
-		#sort by the keys https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value
-		sortedFiles = sorted(files.items(), key=operator.itemgetter(1))
-		
-		#add all sorted values to retval and return.
-		for x, y in reversed(sortedFiles):
-			retVal += str(x)
-			
-			#if the value is higher than 0, add the value
-			if (files[x] > 0):
-				retVal += '('+str(y)+' logs)'
-			
-			retVal += ', '
-		
-		#sends the final message
-		Parent.SendStreamMessage(retVal)
-	return
+    if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
+
+        for filename in glob.glob('Services/Twitch/Givers/*.txt'):
+            # Load in all the file information we need
+            with open(filename, 'r', encoding='utf-8-sig') as f:
+                fileValue = int(f.read().decode('utf-8-sig'))
+
+            changedName = filename
+            changedName = changedName.split('.')[0]
+            files[changedName] = fileValue
+
+        # sort by the keys https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value
+        sortedFiles = sorted(files.items(), key=operator.itemgetter(1))
+
+        # add all sorted values to retval and return.
+        for x, y in reversed(sortedFiles):
+            retVal += str(x)
+
+            # if the value is higher than 0, add the value
+            if (files[x] > 0):
+                retVal += '('+str(y)+' logs)'
+
+            retVal += ', '
+
+        # sends the final message
+        Parent.SendStreamMessage(retVal)
+    return
 
 def Tick():
     """Required tick function"""
