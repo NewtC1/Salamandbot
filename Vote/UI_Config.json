@@ -56,4 +56,18 @@
 		"tooltip": "Allows users to continuously vote for an option",
 		"group": "Vote Features"
 	},
+		"christmas": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Christmas event?",
+		"tooltip": "Enables Christmas stuff.",
+		"group": "Vote Features"
+	},
+		"get_cooldown": {
+		"type": "checkbox",
+		"value": false,
+		"label": "get_cooldown",
+		"tooltip": "Display the user specified user's current cooldown, or returns false if they aren't on cooldown.",
+		"group": "Debug"
+	}
 }

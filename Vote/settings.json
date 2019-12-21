@@ -7,5 +7,7 @@
   "voteMaximum": "100",
   "cooldownTime": "600",
   "dynamicCooldown": true,
-  "continuousVoting": true
+  "continuousVoting": true,
+  "christmas": true,
+  "get_cooldown": true
 }

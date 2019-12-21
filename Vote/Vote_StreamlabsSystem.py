@@ -131,12 +131,8 @@ def Execute(data):
             # security checking for data values
             target = security_check(game)
 
-            # open the file to read the value from it
-            try:
-                with open(voteLocation + target + '.txt', 'r', encoding = 'utf-8-sig') as vote:
-                    voteData = vote.read().decode('utf-8-sig')
-                    retVal += vote.read()
-            except IOError:
+            # check if the file exists
+            if not (os.path.exists(voteLocation + target + '.txt')):
                 retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it.'
                 respond(data, retVal)
                 return
@@ -207,6 +203,7 @@ def Execute(data):
                     hours_to_completion = minutes_to_completion/60
                     minutes_to_completion = minutes_to_completion%60
                 retVal += 'Currently the maximum number of logs is %s. Removing this amount from your pool. '%(MySet.voteMaximum)
+
                 addAmount = int(MySet.voteMaximum)
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
                 if data.User not in activeContinuousAdds:
@@ -246,20 +243,10 @@ def Execute(data):
                 respond(data, retVal)
                 return
 
+            result = add_to_campfire(data.User, target, addAmount)
 
-            try:
-                voteData = int(voteData) + addAmount
-            except ValueError as ve:
-                respond(data, repr(voteData))
-                print()
-
-            # add the vote amount
-            with open(voteLocation + target + '.txt', 'w') as vote:
-                vote.write(str(voteData))
-            # remove the logs from the user
-            Parent.RemovePoints(data.User, data.UserName, addAmount)
             # output the result to the user
-            retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. "%(data.User, addAmount, target, voteData)
+            retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. "%(data.User, addAmount, target, result)
             # add a user to a dictionary when they use the command.
             cooldownList[data.UserName.lower()] = time.time()
 
@@ -269,10 +256,7 @@ def Execute(data):
         else:
             # Output the cooldown message
             if data.UserName.lower() in cooldownList.keys():
-                if MySet.dynamicCooldown:
-                    seconds_to_wait = (cooldownList[data.UserName.lower()] + float(dynamicValue)) - time.time()
-                else:
-                    seconds_to_wait = (cooldownList[data.UserName.lower()] + float(MySet.cooldownTime)) - time.time()
+                seconds_to_wait = get_cooldown(data.User)
                 retVal += "You have to wait " + str(int(seconds_to_wait)) + " more seconds before you can add logs again."
             else:
                 retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of logs>'
@@ -280,12 +264,17 @@ def Execute(data):
         # sends the final message
         if not looped:
             respond(data, retVal)
-        # Parent.SendStreamMessage(str(activeContinuousAdds))
+
+    # debug section
+    if data.IsChatMessage() and data.GetParam(0).lower() == '!debug':
+        if data.GetParam(1) == 'get_cooldown' and MySet.get_cooldown == True:
+            retVal = get_cooldown(data.GetParam(2))
+            Parent.SendStreamMessage(str(retVal))
+
     return
 
 def Tick():
     """Required tick function"""
-    # Parent.SendStreamMessage('Tick')
     removals = []
     global cooldownList
     global dynamicValue
@@ -296,7 +285,6 @@ def Tick():
             if time.time() - dynamicValue > cooldownList[x]:
                 removals.append(x)
         elif time.time() - float(MySet.cooldownTime) > cooldownList[x]:
-            # Parent.SendStreamMessage(x + ' ' + str(cooldownList[x]))
             removals.append(x)
     
     # remove the people who have had their cooldowns time out.
@@ -379,12 +367,7 @@ def addUntilDone(user, targetgame, amount):
         addAmount = int(MySet.voteMaximum)
         targetAmount = amount - int(MySet.voteMaximum)
 
-    with open(voteLocation + targetgame + '.txt', 'r', encoding='utf-8-sig') as vote:
-        voteData = int(vote.read().decode('utf-8-sig'))
-    voteData += addAmount
-    with open(voteLocation + targetgame + '.txt', 'w') as vote:
-        vote.write(str(voteData))
-    Parent.RemovePoints(user, user, addAmount)
+    add_to_campfire(user, targetgame, addAmount)
 
     Parent.SendStreamMessage(user + ' added ' + str(addAmount) + ' logs to the campfire of ' +
                              targetgame + '.')
@@ -393,3 +376,48 @@ def addUntilDone(user, targetgame, amount):
         newData = (user, targetgame, targetAmount)
         activeContinuousAdds[user] = newData
         cooldownList[user.lower()] = time.time()
+
+
+def add_to_campfire(user, targetgame, amount):
+    voteLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
+    with open(voteLocation + targetgame + '.txt', 'r', encoding='utf-8-sig') as vote:
+        voteData = int(vote.read().decode('utf-8-sig'))
+    voteData += amount
+    with open(voteLocation + targetgame + '.txt', 'w') as vote:
+        vote.write(str(voteData))
+    Parent.RemovePoints(user, user, amount)
+
+    if (MySet.christmas == True):
+        add_to_givers(user, amount)
+
+    return voteData + amount
+
+def add_to_givers(user, amount):
+    giverLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Givers/' + user
+
+    if not (os.path.exists(giverLocation + '.txt')):
+        return
+3
+    with open(giverLocation + '.txt', 'r', encoding='utf-8-sig') as vote:
+        voteData = int(vote.read().decode('utf-8-sig'))
+    voteData += amount
+    with open(giverLocation + '.txt', 'w') as vote:
+        vote.write(str(voteData))
+
+
+def get_cooldown(user):
+    global cooldownList
+    global dynamicValue
+
+    # if the user isn't on cooldown, return 0
+    if user not in cooldownList.keys():
+        return 0.0
+
+    # how long has it been since we voted?
+    time_since_vote = (time.time() - cooldownList[user.lower()])
+
+    # returns how much time is left
+    if MySet.dynamicCooldown:
+        return dynamicValue - time_since_vote
+    else:
+        return MySet.cooldownTime - time_since_vote
