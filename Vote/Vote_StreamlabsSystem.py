@@ -100,7 +100,7 @@ def Execute(data):
     """Required Execute function"""
     global cooldownList
     global dynamicValue
-    voteLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
+    voteLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Votes/')
     retVal = ''
     looped = False
     addAmount = 0
@@ -133,7 +133,7 @@ def Execute(data):
 
             # check if the file exists
             if not (os.path.exists(voteLocation + target + '.txt')):
-                retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it.'
+                retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it. ' + voteLocation
                 respond(data, retVal)
                 return
 
@@ -352,7 +352,7 @@ def security_check(input):
 
 # helper function that seperates values from the data Datatype
 def addUntilDone(user, targetgame, amount):
-    voteLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
+    voteLocation = '../../Twitch/Votes/'
 
     global activeContinuousAdds
     addAmount = 0
@@ -379,7 +379,7 @@ def addUntilDone(user, targetgame, amount):
 
 
 def add_to_campfire(user, targetgame, amount):
-    voteLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
+    voteLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Votes/')
     with open(voteLocation + targetgame + '.txt', 'r', encoding='utf-8-sig') as vote:
         voteData = int(vote.read().decode('utf-8-sig'))
     voteData += amount
@@ -392,12 +392,12 @@ def add_to_campfire(user, targetgame, amount):
 
     return voteData + amount
 
+
 def add_to_givers(user, amount):
-    giverLocation = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Givers/' + user
+    giverLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Givers/' + user)
 
     if not (os.path.exists(giverLocation + '.txt')):
         return
-3
     with open(giverLocation + '.txt', 'r', encoding='utf-8-sig') as vote:
         voteData = int(vote.read().decode('utf-8-sig'))
     voteData += amount
