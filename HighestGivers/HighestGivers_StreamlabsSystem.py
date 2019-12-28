@@ -122,9 +122,27 @@ def Execute(data):
             retVal += ', '
 
         # sends the final message
-        Parent.SendStreamMessage(retVal)
+        respond(data, retVal)
     return
 
 def Tick():
     """Required tick function"""
     return
+
+
+def respond(data, output):
+    retVal = output
+
+    # If the original message is from a discord message
+    if data.IsFromDiscord():
+        # if the original message is from a whisper
+        if data.IsWhisper():
+            Parent.SendDiscordDM(data.User, retVal)
+        else:
+            Parent.SendDiscordMessage(retVal)
+    # If the original message is from a live stream
+    else:
+        if data.IsWhisper():
+            Parent.SendStreamWhisper(data.UserName, retVal)
+        else:
+            Parent.SendStreamMessage(str(retVal))
