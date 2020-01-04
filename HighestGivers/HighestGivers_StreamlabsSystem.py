@@ -66,13 +66,13 @@ class Settings:
 
 def ReloadSettings(jsonData):
     """Reload settings"""
-	# Globals
+    # Globals
     global MySet
 
-	# Reload saved settings
+    # Reload saved settings
     MySet.ReloadSettings(jsonData)
 
-	# End of ReloadSettings
+    # End of ReloadSettings
     return
 
 #---------------------------------------

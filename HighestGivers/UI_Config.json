@@ -1,6 +1,6 @@
 {
 	"output_file": "settings.json",
-	"cd_response":{
+	"cd_response": {
 		"type": "textbox",
 		"value": "The command is still on cooldown",
 		"label": "Cooldown Response",
