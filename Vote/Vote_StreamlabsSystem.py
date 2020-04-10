@@ -99,7 +99,6 @@ def Init():
 def Execute(data):
     """Required Execute function"""
     global cooldownList
-    global dynamicValue
     voteLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Votes/')
     retVal = ''
     looped = False
@@ -133,11 +132,11 @@ def Execute(data):
 
             # check if the file exists
             if not (os.path.exists(voteLocation + target + '.txt')):
-                retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it. ' + voteLocation
+                retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it. '
                 respond(data, retVal)
                 return
 
-            # check if the user is attempting to do a !vote <name> all
+            # check if the user is 5attempting to do a !vote <name> all
             if amount.lower() == 'all' and MySet.continuousVoting:
                 # only add anything if the user isn't on the cooldown list.
                 if data.UserName.lower() not in cooldownList.keys():
@@ -247,11 +246,13 @@ def Execute(data):
 
             # output the result to the user
             retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. "%(data.User, addAmount, target, result)
-            # add a user to a dictionary when they use the command.
-            cooldownList[data.UserName.lower()] = time.time()
 
+            cooldown = MySet.cooldownTime
+            # set the cooldown and save it
             if MySet.dynamicCooldown:
-                dynamicValue = addAmount * (int(MySet.cooldownTime)/int(MySet.voteMaximum))
+                cooldown = addAmount * (int(MySet.cooldownTime)/int(MySet.voteMaximum))
+            # add a user to a dictionary when they use the command.
+            cooldownList[data.UserName.lower()] = time.time(), cooldown
             
         else:
             # Output the cooldown message
@@ -277,27 +278,23 @@ def Tick():
     """Required tick function"""
     removals = []
     global cooldownList
-    global dynamicValue
     # if you're on the cooldown list
     for x in cooldownList:
         # if dynamic cooldown is enabled
         if MySet.dynamicCooldown:
-            if time.time() - dynamicValue > cooldownList[x]:
+            if time.time() - cooldownList[x][1] > cooldownList[x][0]:
                 removals.append(x)
-        elif time.time() - float(MySet.cooldownTime) > cooldownList[x]:
+        elif time.time() - float(MySet.cooldownTime) > cooldownList[x][0]:
             removals.append(x)
     
     # remove the people who have had their cooldowns time out.
     for each in removals:
         # if it's in the list of continues adds, resubmit the command that started it.
 
-        #Parent.SendStreamMessage(str(each in activeContinuousAdds.keys()))
-        #Parent.SendStreamMessage(str(each))
         if each.lower() in activeContinuousAdds:
             del cooldownList[each]
             # if the users are still present in the viewer list, continue removing logs.
             if each.lower() in set(Parent.GetViewerList()):
-                #Parent.SendStreamMessage(type(activeContinuousAdds[each.lower()]))
                 data = activeContinuousAdds[each.lower()]
 
                 # if it's a tuple, it's only in the list due to add until amount
@@ -375,7 +372,13 @@ def addUntilDone(user, targetgame, amount):
     if targetAmount != 0:
         newData = (user, targetgame, targetAmount)
         activeContinuousAdds[user] = newData
-        cooldownList[user.lower()] = time.time()
+
+        cooldown = MySet.cooldownTime
+        # set the cooldown and save it
+        if MySet.dynamicCooldown:
+            cooldown = addAmount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
+        # add a user to a dictionary when they use the command.
+        cooldownList[user.lower()] = time.time(), cooldown
 
 
 def add_to_campfire(user, targetgame, amount):
@@ -390,7 +393,7 @@ def add_to_campfire(user, targetgame, amount):
     if (MySet.christmas == True):
         add_to_givers(user, amount)
 
-    return voteData + amount
+    return voteData
 
 
 def add_to_givers(user, amount):
@@ -407,17 +410,16 @@ def add_to_givers(user, amount):
 
 def get_cooldown(user):
     global cooldownList
-    global dynamicValue
 
     # if the user isn't on cooldown, return 0
-    if user not in cooldownList.keys():
+    if user.lower() not in cooldownList.keys():
         return 0.0
 
     # how long has it been since we voted?
-    time_since_vote = (time.time() - cooldownList[user.lower()])
+    time_since_vote = (time.time() - cooldownList[user.lower()][0])
 
     # returns how much time is left
     if MySet.dynamicCooldown:
-        return dynamicValue - time_since_vote
+        return cooldownList[user.lower()][1] - time_since_vote
     else:
         return MySet.cooldownTime - time_since_vote
