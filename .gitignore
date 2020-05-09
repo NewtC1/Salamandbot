@@ -1,0 +1,18 @@
+# .idea files
+.idea/
+
+# counter
+Counter/counter.json
+
+# Festival 
+Festival/.idea/
+Festival/stories.json
+
+# Givers
+HighestGivers/.idea/
+
+# Moonrise
+*/.idea
+
+# scratch files
+scratch.txt
