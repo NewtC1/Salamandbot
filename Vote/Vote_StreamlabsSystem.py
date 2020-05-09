@@ -15,7 +15,7 @@ from io import open
 ScriptName = "Vote"
 Website = "https://www.twitch.tv/newtc"
 Creator = "Newt"
-Version = "1.0.0.0"
+Version = "1.1.0"
 Description = "Allows users to vote on options created by the !addvoteoptions command using currency."
 
 #---------------------------------------
@@ -45,12 +45,15 @@ class Settings:
             self.Enabled = True
             self.OnlyLive = False
             self.Command = "!vote"
-            self.UseCD = False
+            self.AntiSnipe = False
             self.cooldownTime = 600
-            self.cd_response = "{0} the command is still on cooldown for {1} seconds!"
-            self.voteMaximum = 50
+            self.voteMaximum = 100
             self.dynamicCooldown = False
             self.continuousVoting = False
+            self.christmas = False
+            self.get_cooldown = False
+            self.PointsName = "points"
+            self.SilentAdds = True
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
         self.__dict__ = json.loads(data, encoding='utf-8-sig')
@@ -132,6 +135,7 @@ def Execute(data):
 
             # check if the file exists
             if not (os.path.exists(voteLocation + target + '.txt')):
+                Parent.SendStreamWhisper(data.User, VoteLocation)
                 retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it. '
                 respond(data, retVal)
                 return
@@ -189,6 +193,16 @@ def Execute(data):
                     del activeContinuousAdds[data.User]
                 return
 
+            # if users can add all the time, then ignore cooldowns and just add it
+            if MySet.AntiSnipe and addAmount >= 0:
+                # get the number of points afterwards
+                result = add_to_campfire(data.User, target, addAmount)
+                retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. " % (
+                data.User, addAmount, target, result)
+                respond(data, retVal)
+                return
+
+
             # If the user tries to add more than the set maximum, change the amount to add to be that maximum.
             if addAmount > int(MySet.voteMaximum):
                 # get the number of seconds this will take to finish
@@ -242,6 +256,7 @@ def Execute(data):
                 respond(data, retVal)
                 return
 
+            # add it to the campfire
             result = add_to_campfire(data.User, target, addAmount)
 
             # output the result to the user
@@ -263,7 +278,7 @@ def Execute(data):
                 retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of logs>'
                 
         # sends the final message
-        if not looped:
+        if not looped and not MySet.SilentAdds:
             respond(data, retVal)
 
     # debug section
@@ -313,7 +328,7 @@ def Tick():
             # if the user isn't present
             else:
                 Parent.SendStreamWhisper(each.lower(),
-                                         'You have been removed from the continuous add list due to leaving the stream.')
+                                        'You have been removed from the continuous add list due to leaving the stream.')
             # del activeContinuousAdds[each]
         else:
             del cooldownList[each]
@@ -352,8 +367,6 @@ def addUntilDone(user, targetgame, amount):
     voteLocation = '../../Twitch/Votes/'
 
     global activeContinuousAdds
-    addAmount = 0
-    targetAmount = 0
     # if the amount left is less than the voteMaximum, vote with the rest of it and remove the user from the list.
     if amount < int(MySet.voteMaximum):
         addAmount = amount
@@ -366,8 +379,10 @@ def addUntilDone(user, targetgame, amount):
 
     add_to_campfire(user, targetgame, addAmount)
 
-    Parent.SendStreamMessage(user + ' added ' + str(addAmount) + ' logs to the campfire of ' +
-                             targetgame + '.')
+    if not MySet.SilentAdds:
+        # send the stream response
+        Parent.SendStreamMessage(user + ' added ' + str(addAmount) + ' logs to the campfire of ' +
+                                 targetgame + '.')
     # if there's more to add, adjust the data value and add it back in
     if targetAmount != 0:
         newData = (user, targetgame, targetAmount)
@@ -378,6 +393,7 @@ def addUntilDone(user, targetgame, amount):
         if MySet.dynamicCooldown:
             cooldown = addAmount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
         # add a user to a dictionary when they use the command.
+        # if MySet.AntiSnipe:
         cooldownList[user.lower()] = time.time(), cooldown
 
 
@@ -422,4 +438,4 @@ def get_cooldown(user):
     if MySet.dynamicCooldown:
         return cooldownList[user.lower()][1] - time_since_vote
     else:
-        return MySet.cooldownTime - time_since_vote
+        return float(MySet.cooldownTime) - time_since_vote

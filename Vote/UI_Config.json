@@ -1,12 +1,5 @@
 {
 	"output_file": "settings.json",
-	"cd_response":{
-		"type": "textbox",
-		"value": "The command is still on cooldown",
-		"label": "Cooldown Response",
-		"tooltip": "The message that the bot will display.",
-		"group": "Cooldown"
-	},
 	"Command": {
 		"type": "textbox",
 		"value": "!checkOptions",
@@ -21,11 +14,11 @@
 		"tooltip": "Toggles only-live functionality",
 		"group": "General"
 	},
-	"UseCD": {
+	"AntiSnipe": {
 		"type": "checkbox",
 		"value": false,
-		"label": "Enable Cooldown",
-		"tooltip": "Toggles cooldown usage",
+		"label": "Toggles a slow adding system.",
+		"tooltip": "Causes the bot to add points slowly to avoid snipers.",
 		"group": "Cooldown"
 	},
 	"cooldownTime":{
@@ -37,37 +30,51 @@
 	},
 	"voteMaximum":{
 		"type": "textbox",
-		"value": "50",
+		"value": "100",
 		"label": "Maximum vote amount",
 		"tooltip": "The limit that users will hit when voting.",
 		"group": "Vote Features"
 	},
-		"dynamicCooldown": {
+	"dynamicCooldown": {
 		"type": "checkbox",
 		"value": false,
 		"label": "Dynamic Cooldown",
 		"tooltip": "Amount of logs used determines cooldown duration.",
 		"group": "Cooldown"
 	},
-		"continuousVoting": {
+	"continuousVoting": {
 		"type": "checkbox",
 		"value": false,
 		"label": "Continuous voting",
 		"tooltip": "Allows users to continuously vote for an option",
 		"group": "Vote Features"
 	},
-		"christmas": {
+	"christmas": {
 		"type": "checkbox",
 		"value": false,
 		"label": "Christmas event?",
 		"tooltip": "Enables Christmas stuff.",
 		"group": "Vote Features"
 	},
-		"get_cooldown": {
+	"get_cooldown": {
 		"type": "checkbox",
 		"value": false,
 		"label": "get_cooldown",
 		"tooltip": "Display the user specified user's current cooldown, or returns false if they aren't on cooldown.",
 		"group": "Debug"
+	},
+	"PointName": {
+		"type": "textbox",
+		"value": "points",
+		"label": "Points name",
+		"tooltip": "What your points display as in the text responses.",
+		"group": "General"
+	},
+	"SilentAdds": {
+		"type": "checkbox",
+		"value": true,
+		"label": "Add silently?",
+		"tooltip": "Do you want continuous adds to be silent or not?",
+		"group": "Cooldown"
 	}
 }
