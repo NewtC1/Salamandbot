@@ -16,3 +16,7 @@ HighestGivers/.idea/
 
 # scratch files
 scratch.txt
+
+# settings files
+*/settings.js
+*/settings.json

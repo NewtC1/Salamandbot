@@ -1,8 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 # pylint: disable=invalid-name
-"""Let viewers pay currency to boost currency payouts
-for everyone in chat for x seconds"""
+"""Displays all options users can add currency to for voting"""
 import json
 import os, os.path
 import operator
@@ -46,10 +45,7 @@ class Settings:
             self.Enabled = True
             self.OnlyLive = False
             self.Command = "!checkOptions"
-            self.Cost = 0
-            self.UseCD = False
-            self.Cooldown = 5
-            self.cd_response = "{0} the command is still on cooldown for {1} seconds!"
+            self.PointsName = "logs"
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
         self.__dict__ = json.loads(data, encoding='utf-8-sig')
@@ -64,15 +60,16 @@ class Settings:
             f.write("var settings = {0};".format(json.dumps(self.__dict__, encoding='utf-8-sig')))
         return
 
+
 def ReloadSettings(jsonData):
     """Reload settings"""
-	# Globals
+    # Globals
     global MySet
 
-	# Reload saved settings
+    # Reload saved settings
     MySet.ReloadSettings(jsonData)
 
-	# End of ReloadSettings
+    # End of ReloadSettings
     return
 
 #---------------------------------------
@@ -90,44 +87,54 @@ def Init():
     # End of Init
     return
 
-def Execute(data):
-	"""Required Execute function"""
-	currentMax = 0
-	changedName = 'missingFile'
-	retVal = ''
-	files = dict()
 
-	if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
-		
-		for filename in glob.glob('Services/Twitch/Votes/*.txt'):
-			#Load in all the file information we need
-			f = codecs.open(filename, 'r', encoding='utf-8-sig')
-			fileValue = int(f.read())
-			
-			changedName = filename
-			changedName = changedName.split('\\', 1)[-1]
-			changedName = changedName.split('.')[0]
-			files[changedName] = fileValue
-        
-		#sort by the keys https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value
-		sortedFiles = sorted(files.items(), key=operator.itemgetter(1))
-		
-		#add all sorted values to retval and return.
-		for x, y in reversed(sortedFiles):
-			retVal += str(x)
-			
-			#if the value is higher than 0, add the value
-			if (files[x] > 0):
-				retVal += '('+str(y)+' logs)'
-			
-			retVal += ', '
-		
+def Execute(data):
+    """Required Execute function"""
+    currentMax = 0
+    changedName = 'missingFile'
+    retVal = ''
+    files = dict()
+
+    # does nothing if the stream isn't live with the "OnlyLive" setting ticked
+    if MySet.OnlyLive and Parent.IsLive() is False:
+        return
+
+    if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
+
+        if not os.path.exists('Services/Twitch/Votes/'):
+            Parent.SendStreamMessage("Please create the Vote directory.")
+            return
+
+        for filename in glob.glob('Services/Twitch/Votes/*.txt'):
+            #Load in all the file information we need
+            f = codecs.open(filename, 'r', encoding='utf-8-sig')
+            fileValue = int(f.read())
+
+            changedName = filename
+            changedName = changedName.split('\\', 1)[-1]
+            changedName = changedName.split('.')[0]
+            files[changedName] = fileValue
+            f.close()
+
+        # sort by the keys https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value
+        sortedFiles = sorted(files.items(), key=operator.itemgetter(1))
+
+        # add all sorted values to retval and return.
+        for x, y in reversed(sortedFiles):
+            retVal += str(x)
+
+            # if the value is higher than 0, add the value
+            if (files[x] > 0):
+                retVal += '('+str(y)+' '+MySet.PointsName+')'
+
+            retVal += ', '
+
         retVal = retVal[:-2]
-        
-		#sends the final message
+
+        #sends the final message
         respond(data, retVal)
-        
-	return
+
+    return
 
 def Tick():
     """Required tick function"""
