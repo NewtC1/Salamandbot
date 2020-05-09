@@ -46,10 +46,8 @@ class Settings:
             self.Enabled = True
             self.OnlyLive = False
             self.Command = "!stories"
-            self.Cost = 0
-            self.UseCD = False
-            self.Cooldown = 5
-            self.cd_response = "{0} the command is still on cooldown for {1} seconds!"
+            self.SubmissionRewards = "100"
+
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
         self.__dict__ = json.loads(data, encoding='utf-8-sig')
@@ -117,9 +115,11 @@ def Init():
     global m_Active
     global selected_stories
     global story_timer
+    global last_removed_story
     m_Active = False
     selected_stories = []
     story_timer = time.time() + 5400
+    last_removed_story = {}
     # story_timer += time.time() + 600
     # Load in saved settings
     MySet = Settings(settingsFile)
@@ -128,7 +128,7 @@ def Init():
         Parent.SendStreamMessage("No story file found. Creating a new one.")
         data = {}
         with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
-            json.dump(data, f, encoding='utf-8-sig')
+            json.dump(data, f, encoding='utf-8-sig', indent=2)
 
     # convert_to_new_format()
 
@@ -138,52 +138,72 @@ def Init():
 
 def Execute(data):
     """Required Execute function"""
+
+    roll_permissions = ["subscriber", "moderator", "vip", "vip+"]
+
+
     retVal = ''
     global selected_stories
+    global story_timer
 
     if data.IsChatMessage():
         if data.GetParam(0).lower() == MySet.Command.lower() or data.GetParam(0).lower() == "!story":
+
+            # parse the input to something usable by the script
+            data_input = data.Message
+            data_input = data_input.split()
+            data_input = data_input[2:]
+            title = ' '.join(data_input)
+            data_input = '_'.join(data_input).lower()
+
+            # to word commands
             if data.GetParamCount() == 2:
                 if data.GetParam(1).lower() == "display":
                     respond(data, display_story_list())
                 if data.GetParam(1).lower() == "selected":
                     respond(data, parse_selected_stories())
+                if data.GetParam(1).lower() == "roll":
+                    if Parent.HasPermission(data.User,"user_specific", "newtc"):
+                        if len(selected_stories) > 0:
+                            roll_story()
+                            story_timer = time.time() + 3600
+                        else:
+                            roll_unselected_story()
 
-            #if data.GetParamCount() == 4:
-                # if the command is invoked with add
+            # single word commands
             if data.GetParamCount() == 1:
                 respond(data, display_story_list())
 
+            # variable length commands
             if data.GetParamCount() > 1:
                 if data.GetParam(1).lower() == "info":
-                    input = data.Message
-                    input = input.split()
-                    input = input[2:]
-                    title = ' '.join(input)
-                    input = '_'.join(input)
-                    respond(data, "Info for " + title + ": " + story_info(input))
+                    respond(data, "Info for " + title + ": " + story_info(data_input))
                 if data.GetParam(1).lower() == "select":
-                    input = data.Message
-                    input = input.split()
-                    input = input[2:]
-                    title = ' '.join(input)
-                    input = '_'.join(input)
-                    story_added = select_story(input, selected_stories, data.UserName)
+                    story_added = select_story(data_input, selected_stories, data.UserName)
                     if (story_added == True):
                         respond(data, "Added " + title + " to the next story spin.")
                     elif (story_added == False):
                         respond(data, "That story is already in the next story spin.")
                 if data.GetParam(1).lower() == "add":
-                    input = data.Message
-                    input = input.split()
-                    input = input[2:-1]
-                    title = ' '.join(input)
-                    input = '_'.join(input).lower()
-
+                    # get the final value and save is as the link
                     length = data.GetParamCount()
                     info = data.GetParam(length - 1)
+
+                    # build the name
+                    name = []
+                    for param in range(2, length-1):
+                        name.append(data.GetParam(param))
+                    data_input = '_'.join(name)
+
+                    # save the contributor
                     contributor = data.UserName.lower()
-                    add_story(input, info, contributor)
+
+                    if data_input:
+                        add_story(data_input, info, contributor)
+                if data.GetParam(1).lower() == ("remove" or "subtract"):
+                    remove_story(data_input)
+                if data.GetParam(1).lower() == ("restore"):
+                    re_add(data_input)
 
 
         if data.GetParam(0).lower()[0] == '!':
@@ -310,7 +330,7 @@ def select_story(story, selected_stories, user):
                 # add more points each time anyone other than the user selects it
                 data[story.lower()]["value"] += 50
             with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
-                json.dump(data, f, encoding='utf-8-sig')
+                json.dump(data, f, encoding='utf-8-sig', indent=2)
             return True
         else:
             return False
@@ -368,8 +388,13 @@ def add_story(story, info, contributor):
         counter_list[storyname]["info"] = info
         counter_list[storyname]["contributor"] = contributor
         counter_list[storyname]["value"] = 0
+
+        # give logs to the user who added
+        Parent.AddPoints(contributor, contributor, int(MySet.SubmissionReward))
+
+        # save the story
         with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
-            json.dump(counter_list, f, encoding='utf-8-sig')
+            json.dump(counter_list, f, encoding='utf-8-sig', indent=2)
         Parent.SendStreamMessage('Story "' + story_name(story) + '" successfully created.')
 
         retval = True
@@ -378,11 +403,33 @@ def add_story(story, info, contributor):
 
 # remove a story from the list
 def remove_story(story):
+    global last_removed_story
+
     data = load_story_list()
+    # save the story for restoration if we need to
+    last_removed_story[story.lower()] = data[story.lower()]
     del data[story.lower()]
     # update the story file with the removed story
     with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
-        json.dump(data, f, encoding='utf-8-sig')
+        json.dump(data, f, encoding='utf-8-sig', indent=2)
+
+
+def re_add(story):
+    story_lower = story.lower()
+    global last_removed_story
+
+    if story_lower in last_removed_story.keys():
+        # create the new story
+        counter_list = load_story_list()
+        counter_list[story_lower] = {}
+        counter_list[story_lower]["info"] = last_removed_story[story_lower]["info"]
+        counter_list[story_lower]["contributor"] = last_removed_story[story_lower]["contributor"]
+        counter_list[story_lower]["value"] = last_removed_story[story_lower]["value"]
+
+        # save the story
+        with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
+            json.dump(counter_list, f, encoding='utf-8-sig', indent=2)
+        Parent.SendStreamMessage('Story "' + story_name(story) + '" successfully restored.')
 
 #def convert_to_new_format():
 #    data = load_story_list()
