@@ -1,0 +1,52 @@
+{
+	"output_file": "settings.json",
+	"OnlyLive": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Only play while live?",
+		"tooltip": "Toggles only-live functionality",
+		"group": "General"
+	},
+	"Explosions": {
+		"type": "checkbox",
+		"value": "false",
+		"label": "Explosions enabled?",
+		"tooltip": "Explosions deal damage to shields if the campfire is too high.",
+		"group": "Explosions"
+	},
+  	"ShieldThreshold": {
+		"type": "textbox",
+		"value": "1000",
+		"label": "Shield Cost",
+		"tooltip": "How high the campfire has to be before a shield is created",
+		"group": "General"
+	},
+  	"ExplosionThreshold": {
+		"type": "textbox",
+		"value": "0",
+		"label": "Explosion Threshold",
+		"tooltip": "Explosions happen if the campfire is at or above this threshold after an attack.",
+		"group": "Explosions"
+	},
+	"SafetyThreshold": {
+		"type": "textbox",
+		"value": "200",
+		"label": "Safety Threshold",
+		"tooltip": "Threshold at which the creation of a shield or an explosion stops.",
+		"group": "General"
+	},
+	"ShieldDir": {
+		"type": "textbox",
+		"value": "D:/Program Files/Streamlabs Chatbot/Services/Twitch/shields.txt",
+		"label": "Shield filepath",
+		"tooltip": "Filepath to the shield file.",
+		"group": "Directories"
+	},
+	"CampfireDir": {
+		"type": "textbox",
+		"value": "D:/Program Files/Streamlabs Chatbot/Services/Twitch/flame.txt",
+		"label": "Campfire filepath",
+		"tooltip": "Filepath to the campfire file.",
+		"group": "Directories"
+	}
+}
