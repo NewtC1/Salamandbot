@@ -194,7 +194,7 @@ def Execute(data):
                 return
 
             # if users can add all the time, then ignore cooldowns and just add it
-            if MySet.AntiSnipe and addAmount >= 0:
+            if not MySet.AntiSnipe and addAmount >= 0:
                 # get the number of points afterwards
                 result = add_to_campfire(data.User, target, addAmount)
                 retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. " % (
@@ -393,7 +393,6 @@ def addUntilDone(user, targetgame, amount):
         if MySet.dynamicCooldown:
             cooldown = addAmount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
         # add a user to a dictionary when they use the command.
-        # if MySet.AntiSnipe:
         cooldownList[user.lower()] = time.time(), cooldown
 
 
