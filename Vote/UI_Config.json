@@ -70,6 +70,13 @@
 		"tooltip": "What your points display as in the text responses.",
 		"group": "General"
 	},
+	"ResultName": {
+		"type": "textbox",
+		"value": "",
+		"label": "Result name",
+		"tooltip": "What your vote results display as in text responses.",
+		"group": "General"
+	},
 	"SilentAdds": {
 		"type": "checkbox",
 		"value": true,

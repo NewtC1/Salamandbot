@@ -125,7 +125,9 @@ def Execute(data):
                 Parent.SendStreamWhisper(data.User, retVal)
                 return
 
-        if (data.GetParamCount() == 3) and ((data.UserName.lower() not in cooldownList.keys()) or (data.GetParam(2).lower() == 'stop' or data.GetParam(2).lower() == 'all')):
+        if (data.GetParamCount() == 3) and ((data.UserName.lower() not in cooldownList.keys())
+                                            or (data.GetParam(2).lower() == 'stop'
+                                            or data.GetParam(2).lower() == 'all')):
 
             game = data.GetParam(1).lower()
             amount = data.GetParam(2).lower()
@@ -135,8 +137,7 @@ def Execute(data):
 
             # check if the file exists
             if not (os.path.exists(voteLocation + target + '.txt')):
-                Parent.SendStreamWhisper(data.User, VoteLocation)
-                retVal += 'That campfire does not exist yet. Recommend it to me instead and I may add it. '
+                retVal += 'That %s does not exist yet. Recommend it to me instead and I may add it. '%MySet.ResultName
                 respond(data, retVal)
                 return
 
@@ -147,13 +148,15 @@ def Execute(data):
                     addAmount = min(Parent.GetPoints(data.User), MySet.voteMaximum)
                     if data.User not in activeContinuousAdds:
                         activeContinuousAdds[data.User.lower()] = data
-                        response = 'You have been added to the continuous add list and are now adding logs until you run out. '
+                        response = 'You have been added to the continuous add list and are now adding ' + \
+                                   MySet.PointName + 's until you run out. '
                         Parent.SendStreamWhisper(data.User, response)
                 else:
                     # if the user isn't in the add list, add it and add the data
                     if data.User not in activeContinuousAdds:
                         activeContinuousAdds[data.User.lower()] = data
-                        response = 'You have been added to the continuous add list and are now adding logs until you run out. '
+                        response = 'You have been added to the continuous add list and are now adding ' + \
+                                   MySet.PointName + 's until you run out. '
                         Parent.SendStreamWhisper(data.User, response)
                         return
                     else:
@@ -184,8 +187,8 @@ def Execute(data):
 
             # check the amount is not higher than the user can add.
             if addAmount > Parent.GetPoints(data.User):
-                retVal += 'Your log pile pales in comparison to the ' + str(addAmount) + ' you wish to add, ' + \
-                          data.User + '. You only have ' + str(Parent.GetPoints(data.User)) + '. Wait to gather more.'
+                retVal += 'Your %s pales in comparison to the amount you wish to add, %s. You only have %s. Wait to gather more.'\
+                          %(MySet.ResultName, data.User, str(Parent.GetPoints(data.User)))
                 respond(data, retVal)
 
                 # if they're in the auto add list, remove them from that list
@@ -197,8 +200,8 @@ def Execute(data):
             if not MySet.AntiSnipe and addAmount >= 0:
                 # get the number of points afterwards
                 result = add_to_campfire(data.User, target, addAmount)
-                retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. " % (
-                data.User, addAmount, target, result)
+                retVal += "%s added %i to %s's %s. There are now %i %ss in the %s. " % (
+                data.User, addAmount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
                 respond(data, retVal)
                 return
 
@@ -215,7 +218,8 @@ def Execute(data):
                 if minutes_to_completion > 60:
                     hours_to_completion = minutes_to_completion/60
                     minutes_to_completion = minutes_to_completion%60
-                retVal += 'Currently the maximum number of logs is %s. Removing this amount from your pool. '%(MySet.voteMaximum)
+                retVal += 'Currently the maximum number of %ss is %s. Removing this amount from your pool. '\
+                          %(MySet.PointName, MySet.voteMaximum)
 
                 addAmount = int(MySet.voteMaximum)
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
@@ -227,31 +231,33 @@ def Execute(data):
                     # send users a message to inform them how long logs will add for.
                     if hours_to_completion != 0:
                         Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
-                                                'Logs will continue to add for ' +
+                                                MySet.PointName.capitalize() + ' will continue to add for ' +
                                                 str(hours_to_completion) + ' hours and ' +
                                                 str(minutes_to_completion) + ' minutes and ' +
                                                 str(seconds_to_completion) +
                                                 ' seconds. Type "!vote stop" to stop voting on this choice.')
                     elif minutes_to_completion != 0:
                         Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
-                                                'Logs will continue to add for ' +
+                                                MySet.PointName.capitalize() + 's will continue to add for ' +
                                                 str(minutes_to_completion) + ' minutes and ' +
                                                 str(seconds_to_completion) +
                                                 ' seconds. Type "!vote stop" to stop voting on this choice.')
                     else:
                         Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
-                                                'Logs will continue to add for ' +
+                                                MySet.PointName.capitalize() + 's will continue to add for ' +
                                                 str(seconds_to_completion) +
                                                 ' seconds. Type "!vote stop" to stop voting on this choice.')
 
             # check the amount is above 0.
             if addAmount <= 0:
-                retVal = '%s, %i is less than or equal to 0. Please offer at least one log.'%(data.User, addAmount)
+                retVal = '%s, %i is less than or equal to 0. Please offer at least one %ss.'\
+                         %(data.User, addAmount, MySet.PointName)
 
                 # if they're in the auto add list, remove them from that list
                 if data.User in activeContinuousAdds:
                     del activeContinuousAdds[data.User]
-                    retVal += ' If you got this message, you ran out of logs and have been removed from auto add.'
+                    retVal += ' If you got this message, you ran out of ' + MySet.PointName + \
+                              's and have been removed from auto add.'
 
                 respond(data, retVal)
                 return
@@ -260,7 +266,8 @@ def Execute(data):
             result = add_to_campfire(data.User, target, addAmount)
 
             # output the result to the user
-            retVal += "%s added %i to %s's logpile. There are now %i logs in the logpile. "%(data.User, addAmount, target, result)
+            retVal += "%s added %i to %s's %s. There are now %i %ss in the %s. "\
+                      %(data.User, addAmount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
 
             cooldown = MySet.cooldownTime
             # set the cooldown and save it
@@ -273,9 +280,11 @@ def Execute(data):
             # Output the cooldown message
             if data.UserName.lower() in cooldownList.keys():
                 seconds_to_wait = get_cooldown(data.User)
-                retVal += "You have to wait " + str(int(seconds_to_wait)) + " more seconds before you can add logs again."
+                retVal += "You have to wait " + str(int(seconds_to_wait)) + ' more seconds before you can add ' + \
+                          MySet.PointName + 's again.'
             else:
-                retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of logs>'
+                retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of %ss>'\
+                          % MySet.PointName
                 
         # sends the final message
         if not looped and not MySet.SilentAdds:
@@ -381,8 +390,8 @@ def addUntilDone(user, targetgame, amount):
 
     if not MySet.SilentAdds:
         # send the stream response
-        Parent.SendStreamMessage(user + ' added ' + str(addAmount) + ' logs to the campfire of ' +
-                                 targetgame + '.')
+        Parent.SendStreamMessage('%s added %i %ss to the %s of %s.'
+                                 %(user, addAmount, MySet.PointName, MySet.ResultName, targetgame))
     # if there's more to add, adjust the data value and add it back in
     if targetAmount != 0:
         newData = (user, targetgame, targetAmount)
