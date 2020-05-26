@@ -110,14 +110,14 @@ def Execute(data):
         looped = True
 
     # does nothing if the stream isn't live with the "OnlyLive" setting ticked
-    if MySet.OnlyLive and Parent.IsLive() is False:
+    if MySet.OnlyLive and (Parent.IsLive() is False):
         return
 
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
             if data.UserName.lower() not in activeContinuousAdds.keys():
                 retVal = 'There is nothing to stop adding to.'
-                Parent.SendStreamWhisper(data.User, retVal)
+                Parent.SendStreamMessage(data.User, retVal)
                 return
             else:
                 del activeContinuousAdds[data.User]
@@ -125,18 +125,26 @@ def Execute(data):
                 Parent.SendStreamWhisper(data.User, retVal)
                 return
 
-        if (data.GetParamCount() == 3) and ((data.UserName.lower() not in cooldownList.keys())
+        if (data.GetParamCount() > 2) and ((data.UserName.lower() not in cooldownList.keys())
                                             or (data.GetParam(2).lower() == 'stop'
                                             or data.GetParam(2).lower() == 'all')):
 
-            game = data.GetParam(1).lower()
-            amount = data.GetParam(2).lower()
+            data_input = data.Message
+            data_input = data_input.split(" ")
+            data_input = data_input[1:-1]
+            data_input = ' '.join(data_input)
+            game = data_input
+
+            # gets the last element of the array
+            data_input = data.Message
+            data_input = data_input.split()
+            amount = data_input[len(data_input)-1].lower()
 
             # security checking for data values
             target = security_check(game)
 
             # check if the file exists
-            if not (os.path.exists(voteLocation + target + '.txt')):
+            if not os.path.exists(voteLocation + target + '.txt'):
                 retVal += 'That %s does not exist yet. Recommend it to me instead and I may add it. '%MySet.ResultName
                 respond(data, retVal)
                 return
@@ -225,39 +233,39 @@ def Execute(data):
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
                 if data.User not in activeContinuousAdds:
                     # store the new data as a tuple for another function to deal with.
-                    newData = (data.User.lower(), game, int(data.GetParam(2).lower()) - addAmount)
+                    newData = (data.User.lower(), game, int(amount) - addAmount)
                     activeContinuousAdds[data.User.lower()] = newData
                     addAmount/int(MySet.voteMaximum)
                     # send users a message to inform them how long logs will add for.
                     if hours_to_completion != 0:
-                        Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
+                        Parent.SendStreamMessage("You have been added to the continuous add list. " +
                                                 MySet.PointName.capitalize() + ' will continue to add for ' +
                                                 str(hours_to_completion) + ' hours and ' +
                                                 str(minutes_to_completion) + ' minutes and ' +
                                                 str(seconds_to_completion) +
                                                 ' seconds. Type "!vote stop" to stop voting on this choice.')
                     elif minutes_to_completion != 0:
-                        Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
+                        Parent.SendStreamMessage("You have been added to the continuous add list. " +
                                                 MySet.PointName.capitalize() + 's will continue to add for ' +
                                                 str(minutes_to_completion) + ' minutes and ' +
                                                 str(seconds_to_completion) +
                                                 ' seconds. Type "!vote stop" to stop voting on this choice.')
                     else:
-                        Parent.SendStreamWhisper(data.UserName, "You have been added to the continuous add list. " +
+                        Parent.SendStreamMessage("You have been added to the continuous add list. " +
                                                 MySet.PointName.capitalize() + 's will continue to add for ' +
                                                 str(seconds_to_completion) +
                                                 ' seconds. Type "!vote stop" to stop voting on this choice.')
 
             # check the amount is above 0.
             if addAmount <= 0:
-                retVal = '%s, %i is less than or equal to 0. Please offer at least one %ss.'\
-                         %(data.User, addAmount, MySet.PointName)
-
                 # if they're in the auto add list, remove them from that list
                 if data.User in activeContinuousAdds:
                     del activeContinuousAdds[data.User]
                     retVal += ' If you got this message, you ran out of ' + MySet.PointName + \
                               's and have been removed from auto add.'
+                else:
+                    retVal = '%s, %i is less than or equal to 0. Please offer at least one %ss.' \
+                             % (data.User, addAmount, MySet.PointName)
 
                 respond(data, retVal)
                 return

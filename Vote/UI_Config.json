@@ -2,7 +2,7 @@
 	"output_file": "settings.json",
 	"Command": {
 		"type": "textbox",
-		"value": "!checkOptions",
+		"value": "!vote",
 		"label": "Command Name",
 		"tooltip": "The command the bot will respond to",
 		"group": "General"
