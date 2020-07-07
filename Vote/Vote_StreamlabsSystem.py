@@ -112,16 +112,32 @@ def Execute(data):
     if MySet.OnlyLive and (Parent.IsLive() is False):
         return
 
+    # addvoteoption
+    if Parent.HasPermission(data.User, "user_specific", "newtc") and data.GetParam(0).lower() == "!addvoteoption":
+        # getting game name
+        data_input = data.Message
+        data_input = data_input.split(" ")
+        data_input = data_input[1:-1]
+        data_input = ' '.join(data_input)
+        game = data_input
+        with open(voteLocation+game+'.txt', 'w+') as new_option:
+            # write the last value entered in
+            try:
+                new_option.write(data.GetParam(data.GetParamCount()-1))
+            except IOError as e:
+                Parent.SendStreamMessage(e)
+
+     # vote
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
             if data.UserName.lower() not in activeContinuousAdds.keys():
                 retVal = 'There is nothing to stop adding to.'
-                Parent.SendStreamMessage(data.User, retVal)
+                Parent.SendStreamMessage(retVal)
                 return
             else:
                 del activeContinuousAdds[data.User]
                 retVal = 'You have been removed from the continuous add list.'
-                Parent.SendStreamWhisper(data.User, retVal)
+                Parent.SendStreamMessage(retVal)
                 return
 
         if (data.GetParamCount() > 2) and ((data.UserName.lower() not in cooldownList.keys())
@@ -218,7 +234,7 @@ def Execute(data):
             # If the user tries to add more than the set maximum, change the amount to add to be that maximum.
             if addAmount > int(MySet.voteMaximum):
                 # get the number of seconds this will take to finish
-                seconds_to_completion = (addAmount-int(MySet.voteMaximum))/int(MySet.voteMaximum)*int(MySet.cooldownTime)
+                seconds_to_completion = int(((addAmount-float(MySet.voteMaximum))/float(MySet.voteMaximum))*int(MySet.cooldownTime))
                 minutes_to_completion = 0
                 hours_to_completion = 0
                 if seconds_to_completion > 60:
@@ -414,7 +430,7 @@ def addUntilDone(user, targetgame, amount):
 
         if not MySet.SilentAdds:
             # send the stream response
-            Parent.SendStreamMessage('%s added %i %ss to the %s of %s.'
+            Parent.SendStreamWhisper(user, '%s added %i %ss to the %s of %s.'
                                      % (user, addAmount, MySet.PointName, MySet.ResultName, targetgame))
 
         newData = (user, targetgame, amount)
