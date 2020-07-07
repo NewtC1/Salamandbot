@@ -17,7 +17,7 @@ ScriptName = "Counter"
 Website = "https://www.twitch.tv/newtc"
 Creator = "Newt"
 Version = "1.0.0.0"
-Description = "Tracks and creates artificial commands for counting things"
+Description = "Allows users to select stories to have me tell."
 
 #---------------------------------------
 # Versions
@@ -104,22 +104,6 @@ def Execute(data):
     """Required Execute function"""
     retVal = ''
 
-    # Adding a counter
-        # automatically generates the counter command
-    # Removing a counter
-    # Adding to an existing counter
-        # invoking without a number adds 1
-            # +death
-            # +death 5
-    # Subtracting from a counter
-        # invoking without a minus sign reduces by 1
-            # -death
-            # -death 5
-
-
-
-    # load counters.json
-
     if data.IsChatMessage():
         if data.GetParam(0).lower() == MySet.Command.lower():
             if data.GetParamCount() == 3:
@@ -147,7 +131,7 @@ def Execute(data):
                         # remove the counter
                         counter_list = load_counter_list()
                         del counter_list[data.GetParam(2).lower()]
-                        counter_list[data.GetParam(2).lower()] = "0"
+                        # counter_list[data.GetParam(2).lower()] = "0"
                         with codecs.open(counter_file, encoding='utf-8-sig', mode='w+') as f:
                             json.dump(counter_list, f, encoding='utf-8-sig')
 
