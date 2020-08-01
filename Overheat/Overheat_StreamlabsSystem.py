@@ -281,8 +281,7 @@ def feed(reduce_by, data, is_crit):
 
 
 def get_campfire():
-    global MySet
-    campfire_directory = MySet.CampfireDir
+    campfire_directory = os.path.join(os.path.dirname(__file__), '../../Twitch/flame.txt')
     with open(campfire_directory, 'r') as f:
         campfire = int(f.read().decode('utf-8-sig'))
 
@@ -290,15 +289,13 @@ def get_campfire():
 
 
 def set_campfire(value):
-    global MySet
-    campfire_directory = MySet.CampfireDir
+    campfire_directory = os.path.join(os.path.dirname(__file__), '../../Twitch/flame.txt')
     with open(campfire_directory, 'w+') as f:
         f.write(str(value))
 
 
 def get_shields():
-    global MySet
-    shield_directory = MySet.ShieldDir
+    shield_directory = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
     with open(shield_directory, 'r') as f:
         shields = int(f.read().decode('utf-8-sig'))
 
@@ -306,12 +303,11 @@ def get_shields():
 
 
 def set_shields(value):
-    global MySet
-    shield_directory = MySet.ShieldDir
+    shield_directory = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
     with open(shield_directory, 'w+') as f:
         f.write(str(value))
 
 
 def log(value):
-    with open("D:\\Program Files\\Streamlabs Chatbot\\Services\\Scripts\\Overheat\\log.txt", 'w+') as f:
+    with open("log.txt", 'w+') as f:
         f.write(str(value))

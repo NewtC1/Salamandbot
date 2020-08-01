@@ -95,9 +95,8 @@ def Init():
     global PayoutMultiplier
     PayoutMultiplier = 1.0
     global shieldsFile
-    shieldsFile = "D:\Program Files\Streamlabs Chatbot\Services\Twitch\shields.txt"
+    shieldsFile = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
 
-    m_Active = False
     # Load in saved settings
     MySet = Settings(settingsFile)
 
