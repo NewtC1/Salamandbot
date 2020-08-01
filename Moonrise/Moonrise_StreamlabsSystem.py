@@ -41,7 +41,7 @@ Description = "Starts the moonrise event, which attacks the campfire until turne
 # Variables
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
-timerActive = 0
+previous_time = 0
 
 campfireAttackSafetyThreshold = 200 # if there are still shields left, the campfire will not go below this.
 shieldHealth = 800
@@ -49,7 +49,7 @@ attackerDead = False
 rewardMulti = 1.0
 rewardMultiCap = 2.0
 
-shieldDir = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/shields.txt"
+shield_directory = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/shields.txt"
 shieldDamageDir = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/shieldDamage.txt"
 campfireDir = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/flame.txt"
 
@@ -136,7 +136,7 @@ def Init():
     # Globals
     global MySet
     global m_Active
-    global timerActive
+    global previous_time
     global currentAttacker
     timerActive = 0
     m_Active = False
@@ -149,7 +149,7 @@ def Init():
 
 
 def Execute(data):
-    global timerActive
+    global previous_time
     delay = currentAttacker.getBaseAttackDelay() * currentAttacker.getAttackDelayMulti()
     
     # Parent.SendStreamMessage("Timers active: " + str(timerActive))
@@ -180,7 +180,7 @@ def attack(data):
 
     retval = ''
     # open the current shield file
-    with io.open(shieldDir, 'r', encoding='utf-8-sig') as file:
+    with io.open(shield_directory, 'r', encoding='utf-8-sig') as file:
         # read the value
         shieldAmount = int(file.read())
     # respond('Shield amount is ' + str(shieldAmount))
@@ -208,7 +208,7 @@ def attack(data):
             shielddamage = 0
 
             # respond('Just before the write')
-            with io.open(shieldDir, 'w', encoding='utf-8-sig') as file:
+            with io.open(shield_directory, 'w', encoding='utf-8-sig') as file:
                 # write the newly damaged shield amount
                 # respond('Inside the write.')
                 file.write(str(shieldAmount))
@@ -251,7 +251,7 @@ def counterAttack(output):
     retval = output
 
     global campfireAttackSafetyThreshold
-    global timerActive
+    global previous_time
     global currentAttacker
     global rewardMulti
 
@@ -266,7 +266,7 @@ def counterAttack(output):
     # respond(campfire >= campfireAttackAmount)
     if campfire >= currentAttacker.getHealth():
         # open the current shield file
-        with io.open(shieldDir, 'r', encoding='utf-8-sig') as file:
+        with io.open(shield_directory, 'r', encoding='utf-8-sig') as file:
             # read the value
             shieldAmount = file.read()
 
