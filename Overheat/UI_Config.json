@@ -48,5 +48,54 @@
 		"label": "Campfire filepath",
 		"tooltip": "Filepath to the campfire file.",
 		"group": "Directories"
+	},
+	"VoteDir": {
+		"type": "textbox",
+		"value": "D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/",
+		"label": "Vote filepath",
+		"tooltip": "Filepath to the vote folder.",
+		"group": "Directories"
+	},
+	"CritEnabled": {
+		"type": "checkbox",
+		"value": "false",
+		"label": "Crits enabled?",
+		"tooltip": "Crits add a layer of uncertainty to votes. When paired wtih explosions, they result in a lof of badness.",
+		"group": "Critical"
+	},
+	"CritChance": {
+		"type": "textbox",
+		"value": "25",
+		"label": "Base critical chance",
+		"tooltip": "",
+		"group": "Critical"
+	},
+	"CritDestruction": {
+		"type": "checkbox",
+		"value": "false",
+		"label": "Crits can destroy vote options?",
+		"tooltip": "Allows critical hits to destroy vote options permanently if the target it small enough.",
+		"group": "Critical"
+	},
+	"MaximumAttack": {
+		"type": "textbox",
+		"value": "150",
+		"label": "Maximum attack value",
+		"tooltip": "The pre-modification value of the Campfire's maximum attack rolls.",
+		"group": "Attacks"
+	},
+	"MinimumAttack": {
+		"type": "textbox",
+		"value": "130",
+		"label": "Minimum attack value",
+		"tooltip": "The pre-modification value of the Campfire's minimum attack rolls.",
+		"group": "Attacks"
+	},
+	"DelayMultiplier": {
+		"type": "textbox",
+		"value": "60",
+		"label": "Damage to time multiplier",
+		"tooltip": "The number of seconds each damage point is worth. Each point of damage done during the last attack adds this many seconds of a delay.",
+		"group": "Attacks"
 	}
 }

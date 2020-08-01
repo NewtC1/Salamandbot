@@ -5,38 +5,35 @@
 for everyone in chat for x seconds"""
 import json
 import os, os.path
-import operator
 import time
 import codecs
-import glob
-import random
-import threading
-import io
+from math import ceil
 
-#---------------------------------------
+# ---------------------------------------
 # [Required] Script information
-#---------------------------------------
+# ---------------------------------------
 ScriptName = "Overheat"
 Website = "https://www.twitch.tv/newtc"
 Creator = "Newt"
-Version = "1.0.0.0"
+Version = "2.0.0.0"
 Description = "Causes the campgrounds setup to overheat, pulling logs at random into the main campfire"
 
-#---------------------------------------
+# ---------------------------------------
 # Versions
-#---------------------------------------
+# ---------------------------------------
 """
 1.0.0.0 - Initial release
+2.0.0.0 - Rebalanced the shields, added explosions, added crits. Tweaked values.
 """
-#---------------------------------------
+# ---------------------------------------
 # Variables
-#---------------------------------------
+# ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
-timerActive = False
+queued_crits = 0
 
-#---------------------------------------
+# ---------------------------------------
 # Classes
-#---------------------------------------
+# ---------------------------------------
 class Settings:
     """
     Tries to load settings from file if given
@@ -46,14 +43,11 @@ class Settings:
             with codecs.open(settingsFile, encoding='utf-8-sig', mode='r') as f:
                 self.__dict__ = json.load(f, encoding='utf-8-sig')
 
-        else: #set variables if no settings file
+        else: # set variables if no settings file
             self.Enabled = True
             self.OnlyLive = False
             self.Command = "!overheat"
-            self.Cost = 0
-            self.UseCD = False
-            self.Cooldown = 5
-            self.cd_response = "{0} the command is still on cooldown for {1} seconds!"
+
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
         self.__dict__ = json.loads(data, encoding='utf-8-sig')
@@ -70,13 +64,13 @@ class Settings:
 
 def ReloadSettings(jsonData):
     """Reload settings"""
-	# Globals
+    # Globals
     global MySet
 
-	# Reload saved settings
+    # Reload saved settings
     MySet.ReloadSettings(jsonData)
 
-	# End of ReloadSettings
+    # End of ReloadSettings
     return
 
 #---------------------------------------
@@ -85,67 +79,108 @@ def ReloadSettings(jsonData):
 def Init():
     # Globals
     global MySet
-    global m_Active
-    global shieldDir
-    global timerActive
-    timerActive = 0
-    shieldDir = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/shields.txt"
-    m_Active = False
+    global shield_directory
+    global previous_time
+    previous_time = time.clock()
     # Load in saved settings
     MySet = Settings(settingsFile)
 
     # End of Init
     return
 
+
 def Execute(data):
-    campfireDir = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/flame.txt'
-    global shieldDir
-    global timerActive
+    global previous_time
+    global MySet
+    global queued_crits
 
-    shieldInterval = 800
-    shieldThreshold = 200
-    # read in the campfire value
-    with io.open(campfireDir, 'r', encoding='utf-8-sig') as file:
-        campfire = file.read()
-        campfire = int(campfire.decode('utf-8-sig'))
+    # directories
+    campfire_directory = MySet.CampfireDir
 
-    if campfire > shieldInterval + shieldThreshold:
-        campfire = campfire - shieldInterval
+    # threshold values
+    shield_threshold = int(MySet.ShieldThreshold)
+    safety_threshold = int(MySet.SafetyThreshold)
+    explosion_threshold = int(MySet.ExplosionThreshold)
 
-        with io.open(shieldDir, 'r', encoding='utf-8-sig') as file:
-            shields = file.read()
-            shields = int(shields.decode('utf-8-sig')) + 1
+    # number of seconds to multiply by
+    time_multiplier = int(MySet.DelayMultiplier)
 
-        with open(shieldDir, 'w+') as file:
-            file.write(str(shields))
+    # attack values
+    min_range = int(MySet.MinimumAttack)
+    max_range = int(MySet.MaximumAttack)
+    shields = get_shields()
+    attack_damage = int(Parent.GetRandom(min_range, max_range))  # randomly generate how much to damage the target by
+    adjusted_attack_damage = attack_damage - shields
+    time_delay = adjusted_attack_damage*time_multiplier
+    base_critical_chance = int(MySet.CritChance)
 
-        # write the new campfire value in
-        with open(campfireDir, 'w+') as file:
-            file.write(str(campfire))
-        Parent.SendStreamMessage("Flames scorch the ground around the central bonfire as a twisted wooden tree emerges from it, curling protectively around the Campgrounds.")
-    
-    #Parent.SendStreamMessage("Timers active: " + str(timerActive))
-    # if there isn't an active timer and the stream is live
-    elif timerActive < 1 and Parent.IsLive() is True:
-        global shieldDir
-        minRange = 40
-        maxRange = 60
-        multiplier = 60
-        reduceby = int(Parent.GetRandom(minRange, maxRange)) # randomly generate how much to reduce it by
-        
-        with io.open(shieldDir, 'r', encoding = 'utf-8-sig') as file:
-            shields = file.read()
-            shields = int(shields.decode('utf-8-sig'))
-            reduceby = reduceby - shields
-                
-        if reduceby > 0:
-            timer = threading.Timer((reduceby*multiplier), feed, args=[reduceby, data])
-            timer.start()
-            timerActive = timerActive + 1
-            #Parent.SendStreamMessage("Timers active: " + str(timerActive))
-    #elif timerActive == True:
-    #    Parent.SendStreamMessage('The flames are still sleeping.')
+    # if only live is enable, do not run offline
+    if MySet.OnlyLive and not Parent.IsLive():
+        return
+
+    if int(time.clock() - previous_time) > time_delay:
+        if MySet.CritEnabled:
+            crit = Parent.GetRandom(0, 100)
+
+            if queued_crits:
+                crit = crit - 20 # this increases the chance of a crit by 20%
+                queued_crits = queued_crits - 1
+        else:
+            crit = 101
+
+        if adjusted_attack_damage > 0:
+            if crit < base_critical_chance:
+                feed(adjusted_attack_damage, data, True)
+            else:
+                feed(adjusted_attack_damage, data, False)
+
+        previous_time = time.clock()
+
+        creation_fluff = ["Flames scorch the ground around the central bonfire as a twisted " +
+                          "tree emerges from it, curling protectively around the Campgrounds.",
+                          "Another shield tree ascends, its branches meshing with the ones already around it.",
+                          "The Salamander hisses as the purple flames are hidden deeper inside the branches of another "
+                          "shield tree."]
+        if MySet.Explosions:
+            if shield_threshold + safety_threshold < get_campfire() < \
+                    ((explosion_threshold - get_shields()) + safety_threshold):
+
+                set_campfire(get_campfire() - shield_threshold)
+                set_shields(get_shields()+1)
+
+                Parent.SendStreamMessage(creation_fluff[Parent.GetRandom(0,len(creation_fluff))])
+
+            # if explosions are turned on
+            elif get_campfire() >= ((explosion_threshold - get_shields()) + safety_threshold):
+                blast_size = get_campfire()/2
+                blast_damage = int(blast_size/200)
+                if blast_damage > get_shields():
+                    blast_damage = get_shields()
+
+                explosion_fluff = ["The Salamander hisses and begins to glow white-hot. "
+                                   "The sparks crackle from its spines as a massive explosion ripples"
+                                   " out from the Campgrounds. "+str(blast_damage)+" shields were lost in the blast.",
+                                   "A blast of heat ripples across the Campgrounds, followed by a much "
+                                   "stronger blast of flame. "+str(blast_damage)+" shields were lost in the damage.",
+                                   "A pulse of flame ignites several of the trees around the Campfire. The Salamander "
+                                   "giggles maliciously, all kindness has left its eyes. "+str(blast_damage)+" shield trees were lost in"
+                                   "the blast."]
+
+                Parent.SendStreamMessage(str(explosion_fluff[Parent.GetRandom(0,len(explosion_fluff))]))
+                set_shields(get_shields() - blast_damage)
+                set_campfire(int(get_campfire()*0.25))
+                queued_crits = queued_crits + blast_damage
+
+        else:
+            if safety_threshold < get_campfire() - shield_threshold:
+
+                set_campfire(get_campfire() - shield_threshold)
+                set_shields(get_shields()+1)
+
+                Parent.SendStreamMessage(creation_fluff[Parent.GetRandom(0,len(creation_fluff))])
+
     return
+
 
 def Tick():
     return
@@ -154,98 +189,82 @@ def Tick():
 # Helper functions
 # ----------------------------------------
 
-def feed(reduceby, data):
-    #Parent.SendStreamMessage("Beginning Overheat")
-    global timerActive
-    voteDir = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/Votes/'
-    campfireDir = 'D:/Program Files/Streamlabs Chatbot/Services/Twitch/flame.txt'
-    global shieldDir
-    retVal = ''
-    threshold = 800
-    interval = 50 # for every 100 past 1000, increase the multiplier by 1
-    payoutBase = 4 # base logs
-    payoutInterval = 1000 # for every 1000 logs in the campfire, everyone gets an additional log per feed
-    timerActive-=timerActive
-    choices = os.listdir(voteDir)
-    
-    
-    #read in the campfire value
-    with io.open(campfireDir, 'r', encoding = 'utf-8-sig') as file:
-        campfire = file.read()
-        campfire = int(campfire.decode('utf-8-sig'))
 
-    
-    #else:
+def feed(reduce_by, data, is_crit):
+    global previous_time
+    global MySet
+    voteDir = MySet.VoteDir
+    campfireDir = MySet.CampfireDir
+    retVal = ''
+    threshold = 4000
+    interval = 10 # for every 10 past threshold, increase the multiplier by 1
+    previous_time-=previous_time
+    choices = os.listdir(voteDir)
+    total_attack= reduce_by
+
+    if is_crit:
+        total_attack = total_attack*4
+
     # add multiple copies of choices with higher values
     for file in os.listdir(voteDir):
-        #Parent.SendStreamMessage(file)
-        with io.open(voteDir + file, 'r', encoding="utf-8-sig") as f:
-            campfire = int(f.read().decode('utf-8-sig'))
+        with open(voteDir + file, 'r') as f:
+            option = int(f.read().decode('utf-8-sig'))
 
-            if campfire >= (threshold+interval):
-                multiplier = (campfire-threshold)/ interval
+        if option >= (threshold+interval):
+            multiplier = (option-threshold)/interval
 
-                for i in range(multiplier):
-                    choices.append(file)
-            # displays the list after modifications
-            #Parent.SendStreamMessage(str(campfire))
+            for i in range(multiplier):
+                choices.append(file)
 
+    log(choices)
 
     choice = choices[Parent.GetRandom(0,len(choices))]
     name = choice # choose a random file from within the directory
-
-    # Uncomment for a peek at what the choices look like
-    #for each in choices:
-    #    Parent.SendStreamMessage(str(each))
+    game_name = name.split('.')[0]
 
     with open(voteDir + name, 'r') as file: # open the random file
         filedata = int(file.read().decode('utf-8-sig'))
 
-    #Parent.SendStreamMessage('Opened name: ' + name)
+    # make sure it has enough logs to reduce by that much
+    if total_attack > filedata:
+        # if a crit occurs, delete the vote option entirely
+        if is_crit:
+            crit_consume_fluff = ["The flames of the Campgrounds voraciously devour on %s's log pile. " \
+                         "When it is done, nothing remains. " \
+                         "The story has been consumed entirely."% game_name,
+                         "A pillar of flame lances from the center of the Campgrounds to %s's logpile. "
+                         "When it is done, not a single splinter remains of the story." % game_name,
+                         "The eyes of the Salamander travel to %s's logpile. Seconds later, vines of lilac fire blossom"
+                         " forth and enshroud the story. When the smoke clears, nothing remains." % game_name
+                         ]
+            retVal += crit_consume_fluff[Parent.GetRandom(0,len(crit_consume_fluff))]
+            os.remove(voteDir+name)
+            set_campfire(get_campfire() + filedata)
+        else:
+            failure_fluff = ['The questing tendrils of salamander flame pass up ' + game_name + \
+                             '; It is too small to sate it\'s appetite.']
+            retVal += failure_fluff[Parent.GetRandom(0,len(failure_fluff))]
 
-    if reduceby > filedata: # make sure it has enough logs to reduce by that much
-        retVal += 'The questing tendrils of salamander flame pass up ' + name.split('.')[0] + '; It is too small to sate it\'s appetite.'
-
-        #Parent.SendStreamMessage('Too small')
-    else: # feed
-        filedata = filedata - reduceby
-        retVal += 'The salamander flame gorges itself on '+ name.split('.')[0] + '\'s log pile, consuming ' + str(reduceby) + ' logs. It is sated for now.'
-
-        #Parent.SendStreamMessage('The right size.')
+    else:
+        filedata = filedata - total_attack
+        if is_crit:
+            feed_fluff = ["Purple fire sprouts from the campfire and sweeps between the other fires, "
+                          "eventually landing on the fire of " + game_name +
+                          ". The pillar of flame rages and incinerates %i "
+                          "logs from the that fire." % total_attack,
+                          "Fire arches from the central campfire and dives onto " + game_name +
+                          ". %i logs are consumed." % total_attack
+                          ]
+            retVal += feed_fluff[Parent.GetRandom(0,len(feed_fluff))]
+        else:
+            retVal += 'The salamander flame gorges itself on ' + game_name + '\'s log pile, consuming ' + \
+                      str(total_attack) + ' logs. It is sated... for now.'
 
         # Write the reduced log count to the file.
         with open(voteDir + name, 'w+') as file:
             file.write(str(filedata))
 
-        #Parent.SendStreamMessage('The right size, but smaller')
-
-        # read in the campfire
-        with io.open(campfireDir, 'r', encoding = 'utf-8-sig') as file:
-            campfire = file.read()
-            campfire = int(campfire.decode('utf-8-sig'))
-
-            #Parent.SendStreamMessage("Old value: "+ str(campfire))
-            #Parent.SendStreamMessage("Reduceby value: "+ str(reduceby))
-            campfire = campfire + reduceby
-            #Parent.SendStreamMessage("New value: "+ str(campfire))
-
-            payout = int(payoutBase) + int(campfire / payoutInterval)
-
-        #Parent.SendStreamMessage("The growing forest rewards users with " + str(payout) + ' logs.')
-
-        # write the new campfire value in
-        with open(campfireDir, 'w+') as file:
-            file.write(str(campfire))
-
-        #Parent.SendStreamMessage('New value written in.')
-
-        myDict = {}
-        for viewers in Parent.GetViewerList():
-            # this controls how much chatters get payed
-            myDict[viewers] = payout
-
-        Parent.AddPointsAll(myDict)
-        #Parent.SendStreamMessage("The growing forest rewards users with " + str(payout))
+        set_campfire(get_campfire() + total_attack)
 
     if data.IsFromDiscord():
         if data.IsWhisper():
@@ -259,3 +278,40 @@ def feed(reduceby, data):
             Parent.SendStreamMessage(retVal)
             
     return retVal
+
+
+def get_campfire():
+    global MySet
+    campfire_directory = MySet.CampfireDir
+    with open(campfire_directory, 'r') as f:
+        campfire = int(f.read().decode('utf-8-sig'))
+
+    return campfire
+
+
+def set_campfire(value):
+    global MySet
+    campfire_directory = MySet.CampfireDir
+    with open(campfire_directory, 'w+') as f:
+        f.write(str(value))
+
+
+def get_shields():
+    global MySet
+    shield_directory = MySet.ShieldDir
+    with open(shield_directory, 'r') as f:
+        shields = int(f.read().decode('utf-8-sig'))
+
+    return shields
+
+
+def set_shields(value):
+    global MySet
+    shield_directory = MySet.ShieldDir
+    with open(shield_directory, 'w+') as f:
+        f.write(str(value))
+
+
+def log(value):
+    with open("D:\\Program Files\\Streamlabs Chatbot\\Services\\Scripts\\Overheat\\log.txt", 'w+') as f:
+        f.write(str(value))
