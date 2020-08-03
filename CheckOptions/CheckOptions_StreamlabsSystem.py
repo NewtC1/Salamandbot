@@ -90,8 +90,6 @@ def Init():
 
 def Execute(data):
     """Required Execute function"""
-    currentMax = 0
-    changedName = 'missingFile'
     retVal = ''
     files = dict()
 
@@ -110,9 +108,7 @@ def Execute(data):
             f = codecs.open(filename, 'r', encoding='utf-8-sig')
             fileValue = int(f.read())
 
-            changedName = filename
-            changedName = changedName.split('\\', 1)[-1]
-            changedName = changedName.split('.')[0]
+            changedName = filename.split('\\', 1)[-1].split('.')[0]
             files[changedName] = fileValue
             f.close()
 
@@ -136,9 +132,11 @@ def Execute(data):
 
     return
 
+
 def Tick():
     """Required tick function"""
     return
+
 
 def respond(data, output):
     retVal = output

@@ -113,7 +113,7 @@ def Execute(data):
         return
 
     # addvoteoption
-    if Parent.HasPermission(data.User, "user_specific", "newtc") and data.GetParam(0).lower() == "!addvoteoption":
+    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!addvoteoption":
         # getting game name
         data_input = data.Message
         data_input = data_input.split(" ")
@@ -378,6 +378,7 @@ def respond(data, output):
             Parent.SendStreamWhisper(data.UserName, retVal)
         else:
             Parent.SendStreamMessage(str(retVal))
+
 
 def security_check(input):
     target = input
