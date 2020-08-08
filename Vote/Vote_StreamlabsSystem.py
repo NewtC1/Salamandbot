@@ -127,6 +127,19 @@ def Execute(data):
             except IOError as e:
                 Parent.SendStreamMessage(e)
 
+    # deleteoption
+    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteoption":
+        # getting game name
+        data_input = data.Message
+        data_input = data_input.split(" ")
+        data_input = data_input[1:]
+        data_input = ' '.join(data_input)
+        game = data_input
+        try:
+            os.remove(voteLocation+game+".txt")
+        except IOError as e:
+            Parent.SendStreamMessage(e)
+
      # vote
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
