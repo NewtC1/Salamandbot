@@ -52,7 +52,7 @@ class Settings:
             self.continuousVoting = False
             self.christmas = False
             self.get_cooldown = False
-            self.PointsName = "points"
+            self.PointName = "points"
             self.SilentAdds = True
 
     def ReloadSettings(self, data):
@@ -114,7 +114,7 @@ def Execute(data):
 
     # addvoteoption
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!addvoteoption":
-        # getting game name
+        # getting game name!
         data_input = data.Message
         data_input = data_input.split(" ")
         data_input = data_input[1:-1]
