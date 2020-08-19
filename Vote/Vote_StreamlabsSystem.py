@@ -4,8 +4,8 @@
 """Allows users to vote on options created by the !addvoteoptions command using currency."""
 import json
 import os, os.path
-import operator
 import time
+import re
 import codecs
 from io import open
 
@@ -116,16 +116,40 @@ def Execute(data):
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!addvoteoption":
         # getting game name!
         data_input = data.Message
-        data_input = data_input.split(" ")
-        data_input = data_input[1:-1]
-        data_input = ' '.join(data_input)
-        game = data_input
+
+        if '"' in data_input:
+            pattern = '"(.*)"\s*(\d*)'
+            respond(data, data_input)
+            match = re.search(pattern, data_input)
+            game = match.group(1)
+            vote_value = match.group(2)
+            if not vote_value:
+                vote_value = 0
+        else:
+            data_input = data_input.split(" ")
+            vote_value = data.GetParam(data.GetParamCount()-1)
+
+            # decides how to handle the final parameter.
+            try:
+                vote_value = int(vote_value)
+                data_input = data_input[1:-1]
+            except ValueError as e:
+                vote_value = 0
+                data_input = data_input[1:]
+
+            data_input = ' '.join(data_input)
+            game = data_input
         with open(voteLocation+game+'.txt', 'w+') as new_option:
             # write the last value entered in
             try:
-                new_option.write(data.GetParam(data.GetParamCount()-1))
+                new_option.write(str(vote_value))
             except IOError as e:
                 Parent.SendStreamMessage(e)
+
+        if os.path.exists(voteLocation+game+'.txt'):
+            respond(data, 'Successfully created the option %s!' % game)
+        else:
+            respond(data, 'Something went wrong. Let Newt know!')
 
     # deleteoption
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteoption":
@@ -138,7 +162,12 @@ def Execute(data):
         try:
             os.remove(voteLocation+game+".txt")
         except IOError as e:
-            Parent.SendStreamMessage(e)
+            Parent.SendStreamMessage("That vote doesn't exist.")
+
+        if not os.path.exists(voteLocation+game+'.txt'):
+            respond(data, 'Successfully deleted the option %s!' % game)
+        else:
+            respond(data, 'Something went wrong. Let Newt know!')
 
      # vote
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
@@ -269,11 +298,11 @@ def Execute(data):
                     # send users a message to inform them how long logs will add for.
                     if hours_to_completion != 0:
                         retVal += ("You have been added to the continuous add list. " +
-                                                MySet.PointName.capitalize() + ' will continue to add for ' +
-                                                str(hours_to_completion) + ' hours and ' +
-                                                str(minutes_to_completion) + ' minutes and ' +
-                                                str(seconds_to_completion) +
-                                                ' seconds. Type "!vote stop" to stop voting on this choice. ')
+                                   MySet.PointName.capitalize() + ' will continue to add for ' +
+                                   str(hours_to_completion) + ' hours and ' +
+                                   str(minutes_to_completion) + ' minutes and ' +
+                                   str(seconds_to_completion) +
+                                   ' seconds. Type "!vote stop" to stop voting on this choice. ')
                     elif minutes_to_completion != 0:
                         retVal += ("You have been added to the continuous add list. " +
                                                 MySet.PointName.capitalize() + 's will continue to add for ' +
