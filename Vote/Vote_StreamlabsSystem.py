@@ -4,9 +4,12 @@
 """Allows users to vote on options created by the !addvoteoptions command using currency."""
 import json
 import os, os.path
+import operator
 import time
 import re
 import codecs
+import glob
+import shutil
 from io import open
 
 #---------------------------------------
@@ -54,6 +57,7 @@ class Settings:
             self.get_cooldown = False
             self.PointName = "points"
             self.SilentAdds = True
+            self.CheckOptionCommand = "!checkoptions"
 
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
@@ -90,11 +94,36 @@ def Init():
     global m_Active
     global cooldownList
     global activeContinuousAdds
+    global vote_location
     activeContinuousAdds = dict()
     cooldownList = dict()
     m_Active = False
     # Load in saved settings
     MySet = Settings(settingsFile)
+
+    # make the vote location if it doesn't exist
+    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
+    if not os.path.exists(vote_location):
+        os.mkdir(os.path.join(os.getcwd(), vote_location))
+
+    if not os.path.exists(os.path.join(vote_location,'Default')):
+        default = os.path.join(vote_location, 'Default')
+        os.mkdir(default)
+
+        try:
+            # move the previous options that were in vote into the new default folder.
+            for option in os.listdir(vote_location):
+                # Parent.SendStreamMessage(option)
+                if os.path.isfile(os.path.join(vote_location, option)) and option != "active.txt":
+                    os.rename(os.path.join(vote_location, option), os.path.join(default, option))
+
+        except WindowsError as e:
+            Parent.SendStreamMessage(str(e))
+
+    if not os.path.exists(os.path.join(vote_location, 'active.txt')):
+        with open(os.path.join(vote_location, 'active.txt'), 'w+') as active:
+            active.write("Default")
+
 
     # End of Init
     return
@@ -103,7 +132,6 @@ def Init():
 def Execute(data):
     """Required Execute function"""
     global cooldownList
-    voteLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Votes/')
     retVal = ''
     looped = False
     addAmount = 0
@@ -118,7 +146,7 @@ def Execute(data):
         data_input = data.Message
 
         if '"' in data_input:
-            pattern = '"(.*)"\s*(\d*)'
+            pattern = '"(.+)"\s*(\d*)'
             respond(data, data_input)
             match = re.search(pattern, data_input)
             game = match.group(1)
@@ -139,19 +167,19 @@ def Execute(data):
 
             data_input = ' '.join(data_input)
             game = data_input
-        with open(voteLocation+game+'.txt', 'w+') as new_option:
+        with open(os.path.join(get_active_vote_location(), game+'.txt'), 'w+') as new_option:
             # write the last value entered in
             try:
                 new_option.write(str(vote_value))
             except IOError as e:
-                Parent.SendStreamMessage(e)
+                Parent.SendStreamMessage(str(e))
 
-        if os.path.exists(voteLocation+game+'.txt'):
+        if os.path.exists(get_active_vote_location()+'\\'+game+'.txt'):
             respond(data, 'Successfully created the option %s!' % game)
         else:
-            respond(data, 'Something went wrong. Let Newt know!')
+            respond(data, "Could not find the file: " + get_active_vote_location()+game+'.txt')
 
-    # deleteoption
+    # deletevoteoption
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteoption":
         # getting game name
         data_input = data.Message
@@ -160,14 +188,41 @@ def Execute(data):
         data_input = ' '.join(data_input)
         game = data_input
         try:
-            os.remove(voteLocation+game+".txt")
+            os.remove(os.path.join(get_active_vote_location(), game+".txt"))
         except IOError as e:
             Parent.SendStreamMessage("That vote doesn't exist.")
+        except WindowsError as e:
+            Parent.SendStreamMessage(str(e))
 
-        if not os.path.exists(voteLocation+game+'.txt'):
+        if not os.path.exists(os.path.join(get_active_vote_location(), game+'.txt')):
             respond(data, 'Successfully deleted the option %s!' % game)
         else:
             respond(data, 'Something went wrong. Let Newt know!')
+
+    # setvoteprofile
+    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!setvoteprofile":
+        set_active_vote_location(data.GetParam(1).lower())
+        retVal += "The campfires shift and blur. A new set of campfires fades into existence."
+
+    # deletevoteprofile
+    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteprofile":
+        delete_vote_location(data.GetParam(1).lower())
+        retVal += "The old campfire blurs and disappears in front of you. It is no more."
+
+    # showvoteprofile
+    if data.GetParam(0).lower() == "!showvoteprofile":
+        vote_dir = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
+        for each in os.listdir(vote_dir):
+            if each != "active.txt":
+                retVal += each + ', '
+
+        retVal = retVal[:-2]
+        respond(data, retVal)
+
+    # !checkoptions
+    if data.IsChatMessage() and data.GetParam(0).lower() == MySet.CheckOptionsCommand:
+        checkoptions(data)
+        return
 
      # vote
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
@@ -202,7 +257,7 @@ def Execute(data):
             target = security_check(game)
 
             # check if the file exists
-            if not os.path.exists(voteLocation + target + '.txt'):
+            if not os.path.exists(os.path.join(get_active_vote_location(), target + '.txt')):
                 retVal += 'That %s does not exist yet. Recommend it to me instead and I may add it. '%MySet.ResultName
                 respond(data, retVal)
                 return
@@ -305,15 +360,15 @@ def Execute(data):
                                    ' seconds. Type "!vote stop" to stop voting on this choice. ')
                     elif minutes_to_completion != 0:
                         retVal += ("You have been added to the continuous add list. " +
-                                                MySet.PointName.capitalize() + 's will continue to add for ' +
-                                                str(minutes_to_completion) + ' minutes and ' +
-                                                str(seconds_to_completion) +
-                                                ' seconds. Type "!vote stop" to stop voting on this choice. ')
+                                   MySet.PointName.capitalize() + 's will continue to add for ' +
+                                   str(minutes_to_completion) + ' minutes and ' +
+                                   str(seconds_to_completion) +
+                                   ' seconds. Type "!vote stop" to stop voting on this choice. ')
                     else:
                         retVal += ("You have been added to the continuous add list. " +
-                                                MySet.PointName.capitalize() + 's will continue to add for ' +
-                                                str(seconds_to_completion) +
-                                                ' seconds. Type "!vote stop" to stop voting on this choice. ')
+                                   MySet.PointName.capitalize() + 's will continue to add for ' +
+                                   str(seconds_to_completion) +
+                                   ' seconds. Type "!vote stop" to stop voting on this choice. ')
 
             # check the amount is above 0.
             if addAmount <= 0:
@@ -403,6 +458,49 @@ def Tick():
 
     return
 
+def checkoptions(data):
+    """Required Execute function"""
+    retVal = ''
+    files = {}
+
+    if not get_active_vote_location():
+        Parent.SendStreamMessage("Please create the Vote directory.")
+        return
+
+    try:
+        if len(os.listdir(get_active_vote_location())):
+            for filename in os.listdir(get_active_vote_location()):
+                #Load in all the file information we need
+                with open(os.path.join(get_active_vote_location(), filename), 'r', encoding='utf-8-sig') as f:
+                    fileValue = int(f.read())
+
+                    changed_name = filename.split('\\', 1)[-1].split('.')[0]
+                    files[changed_name] = fileValue
+        else:
+            respond(data, "There's nothing in this profile. Add options with !addvoteoption.")
+    except WindowsError as e:
+        Parent.SendStreamMessage(str(e))
+
+    # sort by the keys https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value
+    sorted_files = sorted(files.items(), key=operator.itemgetter(1))
+
+    # add all sorted values to retval and return.
+    for x, y in reversed(sorted_files):
+        retVal += str(x)
+
+        # if the value is higher than 0, add the value
+        if (files[x] > 0):
+            retVal += '('+str(y)+' '+MySet.PointName+')'
+
+        retVal += ', '
+
+    retVal = retVal[:-2]
+
+    #sends the final message
+    respond(data, retVal)
+
+    return
+
 
 def respond(data, output):
     retVal = output
@@ -433,48 +531,48 @@ def security_check(input):
 
 # helper function that seperates values from the data Datatype
 def addUntilDone(user, targetgame, amount):
-    voteLocation = '../../Twitch/Votes/'
 
     global activeContinuousAdds
     # if the amount left is less than the voteMaximum, vote with the rest of it and remove the user from the list.
     if type(amount) == int:
         if amount < int(MySet.voteMaximum):
-            addAmount = amount
-            targetAmount = 0
+            add_amount = amount
+            target_amount = 0
             del activeContinuousAdds[user]
-            Parent.SendStreamWhisper(user, 'You have been removed from the continuous add list. You may now vote again normally.')
+            Parent.SendStreamWhisper(user, 'You have been removed from the continuous add list. '
+                                           'You may now vote again normally.')
         else:
-            addAmount = int(MySet.voteMaximum)
-            targetAmount = amount - int(MySet.voteMaximum)
+            add_amount = int(MySet.voteMaximum)
+            target_amount = amount - int(MySet.voteMaximum)
 
-        add_to_campfire(user, targetgame, addAmount)
+        add_to_campfire(user, targetgame, add_amount)
 
         if not MySet.SilentAdds:
             # send the stream response
             Parent.SendStreamWhisper(user, '%s added %i %ss to the %s of %s.'
-                                     %(user, addAmount, MySet.PointName, MySet.ResultName, targetgame))
+                                     %(user, add_amount, MySet.PointName, MySet.ResultName, targetgame))
         # if there's more to add, adjust the data value and add it back in
-        if targetAmount != 0:
-            newData = (user, targetgame, targetAmount)
+        if target_amount != 0:
+            newData = (user, targetgame, target_amount)
             activeContinuousAdds[user] = newData
 
             cooldown = MySet.cooldownTime
             # set the cooldown and save it
             if MySet.dynamicCooldown:
-                cooldown = addAmount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
+                cooldown = add_amount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
             # add a user to a dictionary when they use the command.
             cooldownList[user.lower()] = time.time(), cooldown
     elif type(amount) == str:   # This is the ALL vote option
-        addAmount = Parent.GetPoints(user)
-        if int(MySet.voteMaximum) < addAmount:
-            addAmount = int(MySet.voteMaximum)
+        add_amount = Parent.GetPoints(user)
+        if int(MySet.voteMaximum) < add_amount:
+            add_amount = int(MySet.voteMaximum)
 
-        add_to_campfire(user, targetgame, addAmount)
+        add_to_campfire(user, targetgame, add_amount)
 
         if not MySet.SilentAdds:
             # send the stream response
             Parent.SendStreamWhisper(user, '%s added %i %ss to the %s of %s.'
-                                     % (user, addAmount, MySet.PointName, MySet.ResultName, targetgame))
+                                     % (user, add_amount, MySet.PointName, MySet.ResultName, targetgame))
 
         newData = (user, targetgame, amount)
         activeContinuousAdds[user] = newData
@@ -482,21 +580,20 @@ def addUntilDone(user, targetgame, amount):
         cooldown = MySet.cooldownTime
         # set the cooldown and save it
         if MySet.dynamicCooldown:
-            cooldown = addAmount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
+            cooldown = add_amount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
         # add a user to a dictionary when they use the command.
 
-        if not addAmount == 0:
+        if not add_amount == 0:
             cooldownList[user.lower()] = time.time(), cooldown
         else:
             Parent.SendStreamMessage(user + " you have run out of logs!")
 
 
 def add_to_campfire(user, targetgame, amount):
-    voteLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Votes/')
-    with open(voteLocation + targetgame + '.txt', 'r', encoding='utf-8-sig') as vote:
+    with open(get_active_vote_location() + targetgame + '.txt', 'r', encoding='utf-8-sig') as vote:
         voteData = int(vote.read().decode('utf-8-sig'))
     voteData += amount
-    with open(voteLocation + targetgame + '.txt', 'w') as vote:
+    with open(get_active_vote_location() + targetgame + '.txt', 'w') as vote:
         vote.write(str(voteData))
     Parent.RemovePoints(user, user, amount)
 
@@ -516,6 +613,45 @@ def add_to_givers(user, amount):
     voteData += amount
     with open(giverLocation + '.txt', 'w') as vote:
         vote.write(str(voteData))
+
+
+def get_active_vote_location():
+    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
+    with open(os.path.join(vote_location,"active.txt"), 'r') as f:
+        ret_val = os.path.join(vote_location, f.read())
+    return ret_val
+
+
+def set_active_vote_location(profile):
+    """Sets the active vote profile by changing the text file in the vote directory. Makes a new vote profile
+    if it doesn't exist yet."""
+    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
+    with open(os.path.join(vote_location, "active.txt"), 'w+') as f:
+        f.write(profile)
+
+    # if the new location doesn't exist, create it
+    new_location = os.path.join(vote_location, profile)
+    if not os.path.exists(new_location):
+        os.mkdir(new_location)
+
+
+def delete_vote_location(profile):
+    """Deletes the target vote profile completely."""
+    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
+    target_location = os.path.join(vote_location, profile)
+
+    # clear the vote location if it's currently active
+    if get_active_vote_location() == profile:
+        with open(os.path.join(vote_location, "active.txt"), 'w+') as f:
+            f.write("default")
+
+    try:
+        for option in os.listdir(target_location):
+            os.remove(os.path.join(target_location, option))
+    except WindowsError as e:
+        Parent.SendStreamMessage(str(e))
+
+    os.rmdir(target_location)
 
 
 def get_cooldown(user):
