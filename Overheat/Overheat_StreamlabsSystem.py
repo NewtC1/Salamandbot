@@ -163,7 +163,8 @@ def Execute(data):
                                    "A blast of heat ripples across the Campgrounds, followed by a much "
                                    "stronger blast of flame. "+str(blast_damage)+" shields were lost in the damage.",
                                    "A pulse of flame ignites several of the trees around the Campfire. The Salamander "
-                                   "giggles maliciously, all kindness has left its eyes. "+str(blast_damage)+" shield trees were lost in"
+                                   "giggles maliciously, all kindness has left its eyes. " + str(blast_damage) +
+                                   " shield trees were lost in"
                                    "the blast."]
 
                 Parent.SendStreamMessage(str(explosion_fluff[Parent.GetRandom(0,len(explosion_fluff))]))
@@ -206,8 +207,8 @@ def feed(reduce_by, data, is_crit):
         total_attack = total_attack*4
 
     # add multiple copies of choices with higher values
-    for file in os.listdir(voteDir):
-        with open(voteDir + file, 'r') as f:
+    for file in os.listdir(get_active_vote_location()):
+        with open(os.path.join(get_active_vote_location(), file), 'r') as f:
             option = int(f.read().decode('utf-8-sig'))
 
         if option >= (threshold+interval):
@@ -222,7 +223,7 @@ def feed(reduce_by, data, is_crit):
     name = choice # choose a random file from within the directory
     game_name = name.split('.')[0]
 
-    with open(voteDir + name, 'r') as file: # open the random file
+    with open(os.path.join(get_active_vote_location(), name), 'r') as file: # open the random file
         filedata = int(file.read().decode('utf-8-sig'))
 
     # make sure it has enough logs to reduce by that much
@@ -230,13 +231,13 @@ def feed(reduce_by, data, is_crit):
         # if a crit occurs, delete the vote option entirely
         if is_crit:
             crit_consume_fluff = ["The flames of the Campgrounds voraciously devour on %s's log pile. " \
-                         "When it is done, nothing remains. " \
-                         "The story has been consumed entirely."% game_name,
-                         "A pillar of flame lances from the center of the Campgrounds to %s's logpile. "
-                         "When it is done, not a single splinter remains of the story." % game_name,
-                         "The eyes of the Salamander travel to %s's logpile. Seconds later, vines of lilac fire blossom"
-                         " forth and enshroud the story. When the smoke clears, nothing remains." % game_name
-                         ]
+                                  "When it is done, nothing remains. The story has been consumed entirely."% game_name,
+                                  "A pillar of flame lances from the center of the Campgrounds to %s's logpile. "
+                                  "When it is done, not a single splinter remains of the story." % game_name,
+                                  "The eyes of the Salamander travel to %s's logpile. "
+                                  "Seconds later, vines of lilac fire blossom"
+                                  " forth and enshroud the story. When the smoke clears, nothing remains." % game_name
+                                 ]
             retVal += crit_consume_fluff[Parent.GetRandom(0,len(crit_consume_fluff))]
             os.remove(voteDir+name)
             set_campfire(get_campfire() + filedata)
@@ -311,3 +312,10 @@ def set_shields(value):
 def log(value):
     with open("log.txt", 'w+') as f:
         f.write(str(value))
+
+
+def get_active_vote_location():
+    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
+    with open(os.path.join(vote_location,"active.txt"), 'r') as f:
+        ret_val = os.path.join(vote_location, f.read())
+    return ret_val
