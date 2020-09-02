@@ -83,5 +83,12 @@
 		"label": "Add silently?",
 		"tooltip": "Do you want continuous adds to be silent or not?",
 		"group": "Cooldown"
+	},
+	"CheckOptionsCommand": {
+		"type": "textbox",
+		"value": "!checkoptions",
+		"label": "Display options command?",
+		"tooltip": "What command will the chat use to display all options?",
+		"group": "General"
 	}
 }

@@ -106,7 +106,7 @@ def Init():
     if not os.path.exists(vote_location):
         os.mkdir(os.path.join(os.getcwd(), vote_location))
 
-    if not os.path.exists(os.path.join(vote_location,'Default')):
+    if not os.path.exists(os.path.join(vote_location, 'Default')):
         default = os.path.join(vote_location, 'Default')
         os.mkdir(default)
 
