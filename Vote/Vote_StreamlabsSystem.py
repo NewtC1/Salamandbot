@@ -590,10 +590,11 @@ def addUntilDone(user, targetgame, amount):
 
 
 def add_to_campfire(user, targetgame, amount):
-    with open(get_active_vote_location() + targetgame + '.txt', 'r', encoding='utf-8-sig') as vote:
+    target_dir = os.path.join(get_active_vote_location(), targetgame + '.txt')
+    with open(target_dir, 'r', encoding='utf-8-sig') as vote:
         voteData = int(vote.read().decode('utf-8-sig'))
     voteData += amount
-    with open(get_active_vote_location() + targetgame + '.txt', 'w') as vote:
+    with open(target_dir, 'w') as vote:
         vote.write(str(voteData))
     Parent.RemovePoints(user, user, amount)
 
@@ -641,7 +642,7 @@ def delete_vote_location(profile):
     target_location = os.path.join(vote_location, profile)
 
     # clear the vote location if it's currently active
-    if get_active_vote_location() == profile:
+    if get_active_vote_location().split("\\")[-1] == profile.lower():
         with open(os.path.join(vote_location, "active.txt"), 'w+') as f:
             f.write("default")
 
