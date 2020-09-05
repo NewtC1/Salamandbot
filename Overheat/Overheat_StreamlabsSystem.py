@@ -223,7 +223,7 @@ def feed(reduce_by, data, is_crit):
     # for each in choices:
         # choice_list += each + " "
 
-    Parent.SendStreamMessage(choice_list)
+    # Parent.SendStreamMessage(choice_list)
 
     choice = choices[Parent.GetRandom(0, len(choices))]
     name = choice # choose a random file from within the directory
