@@ -200,14 +200,16 @@ def feed(reduce_by, data, is_crit):
     threshold = 4000
     interval = 10 # for every 10 past threshold, increase the multiplier by 1
     previous_time-=previous_time
-    choices = os.listdir(voteDir)
     total_attack= reduce_by
+    choices = os.listdir(get_active_vote_location())
 
     if is_crit:
         total_attack = total_attack*4
 
     # add multiple copies of choices with higher values
     for file in os.listdir(get_active_vote_location()):
+        # add at least one copy to the list
+
         with open(os.path.join(get_active_vote_location(), file), 'r') as f:
             option = int(f.read().decode('utf-8-sig'))
 
@@ -217,9 +219,13 @@ def feed(reduce_by, data, is_crit):
             for i in range(multiplier):
                 choices.append(file)
 
-    log(choices)
+    # choice_list = ""
+    # for each in choices:
+        # choice_list += each + " "
 
-    choice = choices[Parent.GetRandom(0,len(choices))]
+    Parent.SendStreamMessage(choice_list)
+
+    choice = choices[Parent.GetRandom(0, len(choices))]
     name = choice # choose a random file from within the directory
     game_name = name.split('.')[0]
 
@@ -262,7 +268,7 @@ def feed(reduce_by, data, is_crit):
                       str(total_attack) + ' logs. It is sated... for now.'
 
         # Write the reduced log count to the file.
-        with open(voteDir + name, 'w+') as file:
+        with open(os.path.join(get_active_vote_location(), name), 'w+') as file:
             file.write(str(filedata))
 
         set_campfire(get_campfire() + total_attack)
