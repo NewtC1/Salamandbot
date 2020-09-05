@@ -174,7 +174,7 @@ def Execute(data):
             except IOError as e:
                 Parent.SendStreamMessage(str(e))
 
-        if os.path.exists(get_active_vote_location()+'\\'+game+'.txt'):
+        if os.path.exists(os.path.join(get_active_vote_location(), game+'.txt')):
             respond(data, 'Successfully created the option %s!' % game)
         else:
             respond(data, "Could not find the file: " + get_active_vote_location()+game+'.txt')
