@@ -245,7 +245,7 @@ def feed(reduce_by, data, is_crit):
                                   " forth and enshroud the story. When the smoke clears, nothing remains." % game_name
                                  ]
             retVal += crit_consume_fluff[Parent.GetRandom(0,len(crit_consume_fluff))]
-            os.remove(voteDir+name)
+            os.remove(os.path.join(get_active_vote_location(), name))
             set_campfire(get_campfire() + filedata)
         else:
             failure_fluff = ['The questing tendrils of salamander flame pass up ' + game_name + \
