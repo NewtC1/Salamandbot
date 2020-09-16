@@ -45,7 +45,7 @@ class Settings:
         else: #set variables if no settings file
             self.Enabled = True
             self.OnlyLive = False
-            self.Command = "!checkOptions"
+            self.Command = "!points"
             self.Cost = 0
             self.UseCD = False
             self.Cooldown = 5
