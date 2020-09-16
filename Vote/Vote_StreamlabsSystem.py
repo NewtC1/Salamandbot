@@ -57,7 +57,7 @@ class Settings:
             self.get_cooldown = False
             self.PointName = "points"
             self.SilentAdds = True
-            self.CheckOptionCommand = "!checkoptions"
+            self.CheckOptionsCommand = "!checkoptions"
 
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
