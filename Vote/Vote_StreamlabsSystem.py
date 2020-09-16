@@ -226,6 +226,12 @@ def Execute(data):
 
      # vote
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
+        if data.GetParamCount() < 2:
+            retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of %ss>' \
+                      % MySet.PointName
+            respond(data, retVal)
+            return
+
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
             if data.UserName.lower() not in activeContinuousAdds.keys():
                 retVal = 'There is nothing to stop adding to.'
@@ -237,9 +243,8 @@ def Execute(data):
                 Parent.SendStreamMessage(retVal)
                 return
 
-        if (data.GetParamCount() > 2) and ((data.UserName.lower() not in cooldownList.keys())
-                                           or (data.GetParam(2).lower() == 'stop'
-                                           or data.GetParam(2).lower() == 'all')):
+        if data.UserName.lower() not in cooldownList.keys() or \
+                (data.GetParam(2).lower() == 'stop' or data.GetParam(2).lower() == 'all'):
 
             # getting game name
             data_input = data.Message
@@ -394,7 +399,7 @@ def Execute(data):
             cooldown = MySet.cooldownTime
             # set the cooldown and save it
             if MySet.dynamicCooldown:
-                cooldown = addAmount * (int(MySet.cooldownTime)/int(MySet.voteMaximum))
+                cooldown = addAmount * (float(MySet.cooldownTime)/float(MySet.voteMaximum))
             # add a user to a dictionary when they use the command.
             cooldownList[data.UserName.lower()] = time.time(), cooldown
             
@@ -404,10 +409,9 @@ def Execute(data):
                 seconds_to_wait = get_cooldown(data.User)
                 retVal += "You have to wait " + str(int(seconds_to_wait)) + ' more seconds before you can add ' + \
                           MySet.PointName + 's again.'
-            else:
-                retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of %ss>'\
-                          % MySet.PointName
-                
+                respond(data, retVal)
+                return
+
         # sends the final message
         if not looped and not MySet.SilentAdds:
             respond(data, retVal)
