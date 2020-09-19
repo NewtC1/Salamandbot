@@ -203,11 +203,13 @@ def Execute(data):
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!setvoteprofile":
         set_active_vote_location(data.GetParam(1).lower())
         retVal += "The campfires shift and blur. A new set of campfires fades into existence."
+        respond(data, retVal)
 
     # deletevoteprofile
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteprofile":
         delete_vote_location(data.GetParam(1).lower())
         retVal += "The old campfire blurs and disappears in front of you. It is no more."
+        respond(data, retVal)
 
     # showvoteprofile
     if data.GetParam(0).lower() == "!showvoteprofile":
