@@ -1,5 +1,6 @@
 from DarkForestCreature import DarkForestCreature
 
+
 class Beast(DarkForestCreature):
 
     def __init__(self, delay, delayMulti, attack, attackMulti, health, reward):

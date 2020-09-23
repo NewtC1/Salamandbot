@@ -7,11 +7,11 @@ import json
 import os
 import os.path
 import codecs
-import threading
-import io
 import sys
+from time import time
+from io import open
+
 sys.path.append(os.path.dirname(__file__))
-from DarkForestCreature import DarkForestCreature
 from Dragon import Dragon
 from Beast import Beast
 from Vine import Vine
@@ -44,26 +44,17 @@ settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
 previous_time = 0
 
 campfireAttackSafetyThreshold = 200 # if there are still shields left, the campfire will not go below this.
-shieldHealth = 800
+shieldHealth = 1000
 attackerDead = False
-rewardMulti = 1.0
+reward_multi = 1.0
 rewardMultiCap = 2.0
+delay = 0
 
-shield_directory = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/shields.txt"
-shieldDamageDir = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/shieldDamage.txt"
-campfireDir = "D:/Program Files/Streamlabs Chatbot/Services/Twitch/flame.txt"
+shield_directory = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shields.txt")
+shield_damage_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shieldDamage.txt")
+campfire_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\flame.txt")
 
-attackers = [Vine(60, 1.0, 5, 1.0, 20, 120), # dpm of 5
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Vine(60, 1.0, 5, 1.0, 20, 120),
-             Spider(60, 1.0, 15, 1.0, 100, 240), # dpm of 15
+attackers = [Spider(60, 1.0, 15, 1.0, 100, 240), # dpm of 15
              Spider(60, 1.0, 15, 1.0, 100, 240),
              Spider(60, 1.0, 15, 1.0, 100, 240),
              Spider(60, 1.0, 15, 1.0, 100, 240),
@@ -81,7 +72,7 @@ attackers = [Vine(60, 1.0, 5, 1.0, 20, 120), # dpm of 5
              Ashvine(60, 1.0, 30, 1.0, 60, 50), # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
              Bunny(0,0,0,0,0, 1800)] # unspeakably evil
 #attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
-currentAttacker = attackers[0]
+current_attacker = attackers[0]
 
 # ---------------------------------------
 # Classes
@@ -108,7 +99,6 @@ class Settings:
         self.__dict__ = json.loads(data, encoding='utf-8-sig')
         return
 
-
     def SaveSettings(self, settingsFile):
         """Save settings to files (json and js)"""
         with codecs.open(settingsFile, encoding='utf-8-sig', mode='w+') as f:
@@ -116,6 +106,7 @@ class Settings:
         with codecs.open(settingsFile.replace("json", "js"), encoding='utf-8-sig', mode='w+') as f:
             f.write("var settings = {0};".format(json.dumps(self.__dict__, encoding='utf-8-sig')))
         return
+
 
 def ReloadSettings(jsonData):
     """Reload settings"""
@@ -135,33 +126,39 @@ def ReloadSettings(jsonData):
 def Init():
     # Globals
     global MySet
-    global m_Active
     global previous_time
-    global currentAttacker
-    timerActive = 0
-    m_Active = False
+    global current_attacker
     # Load in saved settings
     MySet = Settings(settingsFile)
     # Set the baseline attacker
-    currentAttacker = attackers[0]
+    current_attacker = attackers[0]
+    # set start values
+    previous_time = time()
+    delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
     # End of Init
     return
 
 
 def Execute(data):
     global previous_time
-    delay = currentAttacker.getBaseAttackDelay() * currentAttacker.getAttackDelayMulti()
-    
-    # Parent.SendStreamMessage("Timers active: " + str(timerActive))
-    # if there isn't an active timer and the stream is live
-    if Parent.IsLive() is True:
-        if timerActive < 1:
-            if not attackerDead:
-                # respond('Starting attack')
-                timer = threading.Timer(delay, attack, args=[data])
-                timer.start()
-                timerActive = timerActive + 1
-                # Parent.SendStreamMessage("Timers active: " + str(timerActive))
+    global attackers
+    global attackerDead
+    global delay
+
+    # respond("Time until the next attack: " + str(delay - (time()-previous_time)))
+    if int(time() - previous_time) > delay:
+        # spawn a new attacker if dead
+        if attackerDead:
+            attacker = attackers[Parent.GetRandom(0, len(attackers))]
+            set_new_attacker(attacker)
+        else:
+            # do an attack action
+            attack()
+            previous_time = time()
+
+        if not attackerDead:
+            delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
+
     return
 
 
@@ -173,28 +170,31 @@ def Tick():
 # ----------------------------------------
 
 
-def attack(data):
-    global rewardMulti
+def attack():
+    global reward_multi
+    global shield_directory
+    global shield_damage_dir
+    global campfire_dir
 
-    damage = int(currentAttacker.getBaseAttackStrength() * currentAttacker.getAttackStrengthMulti())
+    damage = int(current_attacker.getBaseAttackStrength() * current_attacker.getAttackStrengthMulti())
 
     retval = ''
     # open the current shield file
-    with io.open(shield_directory, 'r', encoding='utf-8-sig') as file:
+    with open(shield_directory, 'r', encoding='utf-8-sig') as file:
         # read the value
-        shieldAmount = int(file.read())
+        shield_amount = int(file.read())
     # respond('Shield amount is ' + str(shieldAmount))
     # deal damage to shields are there are still any remaining
-    if shieldAmount > 0:
+    if shield_amount > 0:
         # open the current shield damage file
-        with io.open(shieldDamageDir, 'r', encoding='utf-8-sig') as file:
+        with open(shield_damage_dir, 'r', encoding='utf-8-sig') as file:
             # read the value
             # respond('opening shield damage')
             shielddamage = int(file.read())
             # respond('Shield Damage is ' + str(shielddamage))
         # increase the shield damage
         shielddamage += damage
-        retval += currentAttacker.getAttack()
+        retval += current_attacker.getAttack()
 
         # respond(shielddamage >= shieldHealth)
         # debug output
@@ -203,20 +203,20 @@ def attack(data):
         # if the damage exceeded the current shield health
         if shielddamage >= shieldHealth:
             # reduce the number of shields if damage hit a health threshold
-            shieldAmount = shieldAmount - 1
+            shield_amount = shield_amount - 1
             # reset the shield damage value to 0
             shielddamage = 0
 
             # respond('Just before the write')
-            with io.open(shield_directory, 'w', encoding='utf-8-sig') as file:
+            with open(shield_directory, 'w', encoding='utf-8-sig') as file:
                 # write the newly damaged shield amount
                 # respond('Inside the write.')
-                file.write(str(shieldAmount))
-            retval += ' The shield shudders and falls, splintering across the ground. There are now ' + str(shieldAmount) + ' shields left.'
-            rewardMulti = 1.0
+                file.write(str(shield_amount))
+            retval += ' The shield shudders and falls, splintering across the ground. There are now ' + str(shield_amount) + ' shields left.'
+            reward_multi = 1.0
 
         # open and save the new damage
-        with io.open(shieldDamageDir, 'w', encoding='utf-8-sig') as file:
+        with open(shield_damage_dir, 'w', encoding='utf-8-sig') as file:
             # respond('Shield damage before writing is ' + str(shielddamage))
             # write the value back
             file.write(str(shielddamage))
@@ -224,101 +224,104 @@ def attack(data):
 
         # respond('Successful write completed. Moving to counterattack.')
 
-        counterAttack(retval)
+        counter_attack(retval)
 
     else:
         # deal damage to the main campfire if there aren't any shields
-        with io.open(campfireDir, 'r', encoding='utf-8-sig') as file:
+        with open(campfire_dir, 'r', encoding='utf-8-sig') as file:
             # read the value
             campfire = int(file.read())
         campfire = int(campfire - damage)
         # open and save the new damage
-        with io.open(campfireDir, 'w', encoding='utf-8-sig') as file:
+        with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
             # write the value back
             file.write(str(campfire))
 
-        retval += currentAttacker.getCampfireAttack()
+        retval += current_attacker.getCampfireAttack()
 
         # if the campfire isn't at 0, counter attack
         if campfire > 0:
-            counterAttack(retval)
+            counter_attack(retval)
         # else, begin the fail state
         else:
             enactFailure()
 
 
-def counterAttack(output):
+def counter_attack(output):
     retval = output
 
     global campfireAttackSafetyThreshold
-    global previous_time
-    global currentAttacker
-    global rewardMulti
-
-    # even if it does anything, start the next attack cycle
-    timerActive -= 1
+    global current_attacker
+    global reward_multi
+    global delay
 
     # The the salamander counter attacks if it has the logs to beat the current attacker.
-    with io.open(campfireDir, 'r', encoding='utf-8-sig') as file:
+    with open(campfire_dir, 'r', encoding='utf-8-sig') as file:
         # read the value
         campfire = int(file.read())
 
     # respond(campfire >= campfireAttackAmount)
-    if campfire >= currentAttacker.getHealth():
+    if campfire >= current_attacker.getHealth():
         # open the current shield file
-        with io.open(shield_directory, 'r', encoding='utf-8-sig') as file:
+        with open(shield_directory, 'r', encoding='utf-8-sig') as file:
             # read the value
             shieldAmount = file.read()
 
         # The the salamander counter attacks if it has the logs to beat the current attacker.
         if shieldAmount > 0:
-            if (currentAttacker.getHealth() + campfireAttackSafetyThreshold) <= campfire:
+            if (current_attacker.getHealth() + campfireAttackSafetyThreshold) <= campfire:
                 # kill the attacker
                 retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
-                with io.open(campfireDir, 'r', encoding='utf-8-sig') as file:
+                with open(campfire_dir, 'r', encoding='utf-8-sig') as file:
                     # read the value
                     campfire = int(file.read())
-                campfire = campfire - currentAttacker.getHealth()
+                campfire = campfire - current_attacker.getHealth()
                 # open and save the new damage
-                with io.open(campfireDir, 'w', encoding='utf-8-sig') as file:
+                with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
                     # write the value back
                     file.write(str(campfire))
-                killAttacker()
-                retval += ' Combo counter is at ' + str(rewardMulti)
+                delay = kill_attacker()
+                retval += " The attacker has been slain. You gain " + str(
+                    current_attacker.getReward()) + " more seconds until the next attack."
+                retval += ' Combo counter is at ' + str(reward_multi)
         # if there are no shields left, ignore the safety threshold
         else:
-            if currentAttacker.getHealth() < campfire:
+            if current_attacker.getHealth() < campfire:
                 # kill the attacker
                 retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
-                killAttacker()
-                retval += ' Combo counter is at ' + str(rewardMulti)
+                delay = kill_attacker()
+                retval += " The attacker has been slain. You gain " + str(
+                    current_attacker.getReward()) + " more seconds until the next attack."
+                retval += ' Combo counter is at ' + str(reward_multi)
     respond(retval)
 
 
 # sets the values of the new attacker
-def setNewAttacker(attacker):
-    # anti-Malarthi globals
-    global currentAttacker
+def set_new_attacker(attacker):
+    global current_attacker
     global attackerDead
 
     respond(attacker.getSpawnMessage())
-    currentAttacker = attacker
+    current_attacker = attacker
     attackerDead = False
 
 
-def killAttacker():
+def kill_attacker():
     # currentAttacker
     global attackerDead
-    global rewardMulti
-    reward = currentAttacker.getReward()
+    global reward_multi
+    global delay
+
+    if reward_multi < rewardMultiCap:
+        reward_multi += 0.1
+
+    reward = current_attacker.getReward()*reward_multi
     attackerDead = True
-    attacker = attackers[Parent.GetRandom(0,len(attackers))]
 
-    # if rewardMulti < rewardMultiCap:
-    rewardMulti += 0.1
+    return reward
+    # timer = threading.Timer(int(reward * reward_multi), set_new_attacker, args=[attacker])
+    # timer.start()
 
-    timer = threading.Timer(int(reward * rewardMulti), setNewAttacker, args=[attacker])
-    timer.start()
 
 def respond(output):
     retVal = output
