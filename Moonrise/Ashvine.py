@@ -5,8 +5,9 @@ from DarkForestCreature import DarkForestCreature
 
 class Ashvine(DarkForestCreature):
 
-    def __init__(self, delay=60, delayMulti=1.0, attack=30, attackMulti=1.0, health=60, reward=50):
-        DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward)
+    def __init__(self, delay=60, delayMulti=1.0, attack=30, attackMulti=1.0, health=60, reward=50,
+                 incineration_resist=5):
+        DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward, incineration_resist)
 
     def getAttack(self):
         self.setHealth(int(self.getHealth()*1.3))

@@ -14,7 +14,6 @@ from io import open
 sys.path.append(os.path.dirname(__file__))
 from Dragon import Dragon
 from Beast import Beast
-from Vine import Vine
 from Colossus import Colossus
 from ShadowBoundBear import ShadowBoundBear
 from Spider import Spider
@@ -64,7 +63,7 @@ attackers = [Spider(),  # dpm of 15
              Bunny()] # unspeakably evil
 
 # attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
-# attackers = [Thunderjaw(1, 1.0, 5, 1.0, 600, 50)]
+attackers = [Thunderjaw(1, 1.0, 5, 1.0, 600, 50)]
 current_attacker = attackers[0]
 
 # ---------------------------------------
@@ -133,12 +132,17 @@ def Init():
 
 
 def Execute(data):
+
+    return
+
+
+def Tick():
     global previous_time
     global attackers
     global attackerDead
     global delay
 
-    # respond("Time until the next attack: " + str(delay - (time()-previous_time)))
+    respond("Time until the next attack: " + str(delay - (time()-previous_time)))
     if int(time() - previous_time) > delay:
         # spawn a new attacker if dead
         if attackerDead:
@@ -152,10 +156,6 @@ def Execute(data):
         if not attackerDead:
             delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
 
-    return
-
-
-def Tick():
     return
 
 # ----------------------------------------
