@@ -93,9 +93,9 @@ def Init():
     global MySet
     global m_Active
     global cooldownList
-    global activeContinuousAdds
+    global active_continuous_adds
     global vote_location
-    activeContinuousAdds = dict()
+    active_continuous_adds = dict()
     cooldownList = dict()
     m_Active = False
     # Load in saved settings
@@ -235,12 +235,12 @@ def Execute(data):
             return
 
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
-            if data.UserName.lower() not in activeContinuousAdds.keys():
+            if data.UserName.lower() not in active_continuous_adds.keys():
                 retVal = 'There is nothing to stop adding to.'
                 Parent.SendStreamMessage(retVal)
                 return
             else:
-                del activeContinuousAdds[data.User]
+                del active_continuous_adds[data.User]
                 retVal = 'You have been removed from the continuous add list.'
                 Parent.SendStreamMessage(retVal)
                 return
@@ -271,41 +271,43 @@ def Execute(data):
 
             # check if the user is 5attempting to do a !vote <name> all
             if amount.lower() == 'all' and MySet.continuousVoting:
-                newData = (data.User.lower(), target, amount.lower())
+                new_data = (data.User.lower(), target, amount.lower())
                 # only add anything if the user isn't on the cooldown list.
                 if data.UserName.lower() not in cooldownList.keys():
                     addAmount = min(Parent.GetPoints(data.User), MySet.voteMaximum)
-                    if data.User not in activeContinuousAdds:
-                        activeContinuousAdds[data.User.lower()] = newData
+                    if data.User not in active_continuous_adds:
+                        active_continuous_adds[data.User.lower()] = new_data
                         retVal += 'You have been added to the continuous add list and are now adding ' + \
                                    MySet.PointName + 's until you run out. '
                         # Parent.SendStreamMessage(response)
                 else:
                     # if the user isn't in the add list, add it and add the data
-                    if data.User not in activeContinuousAdds:
-                        activeContinuousAdds[data.User.lower()] = newData
+                    if data.User not in active_continuous_adds:
+                        active_continuous_adds[data.User.lower()] = new_data
                         response = 'You have been added to the continuous add list and are now adding ' + \
                                    MySet.PointName + 's until you run out. '
-                        Parent.SendStream(response)
+                        Parent.SendStreamMessage(response)
                         return
                     #
                     else:
-                        activeContinuousAdds[data.User.lower()] = newData
+                        active_continuous_adds[data.User.lower()] = new_data
                         response = 'You are already in the the active list. Type "!vote stop" at any time to stop adding. '
                         Parent.SendStreamMessage(response)
                         return
 
             # check if the user is attempting to stop adding logs automatically
             elif amount == 'stop' and MySet.continuousVoting:
-                if data.User in activeContinuousAdds:
+                if data.User in active_continuous_adds:
                     retVal += 'You have been removed from the continuous add list for '+str(target)+' '+str(data.User)
                     Parent.SendStreamWhisper(data.User, retVal)
-                    del activeContinuousAdds[data.User]
+                    del active_continuous_adds[data.User]
                     return
                 else:
                     retVal += 'You aren\'t on the continuous add list.'
                     respond(data, retVal)
                     return
+
+            # add amount
             else:
                 # verify the amount to add is actually an integer
                 try:
@@ -322,8 +324,8 @@ def Execute(data):
                 respond(data, retVal)
 
                 # if they're in the auto add list, remove them from that list
-                if data.User in activeContinuousAdds:
-                    del activeContinuousAdds[data.User]
+                if data.User in active_continuous_adds:
+                    del active_continuous_adds[data.User]
                 return
 
             # if users can add all the time, then ignore cooldowns and just add it
@@ -353,10 +355,10 @@ def Execute(data):
 
                 addAmount = int(MySet.voteMaximum)
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
-                if data.User not in activeContinuousAdds:
+                if data.User not in active_continuous_adds:
                     # store the new data as a tuple for another function to deal with.
-                    newData = (data.User.lower(), target, int(amount) - addAmount)
-                    activeContinuousAdds[data.User.lower()] = newData
+                    new_data = (data.User.lower(), target, int(amount) - addAmount)
+                    active_continuous_adds[data.User.lower()] = new_data
                     # send users a message to inform them how long logs will add for.
                     if hours_to_completion != 0:
                         retVal += ("You have been added to the continuous add list. " +
@@ -376,12 +378,11 @@ def Execute(data):
                                    MySet.PointName.capitalize() + 's will continue to add for ' +
                                    str(seconds_to_completion) +
                                    ' seconds. Type "!vote stop" to stop voting on this choice. ')
-
             # check the amount is above 0.
             if addAmount <= 0:
                 # if they're in the auto add list, remove them from that list
-                if data.User in activeContinuousAdds:
-                    del activeContinuousAdds[data.User]
+                if data.User in active_continuous_adds:
+                    del active_continuous_adds[data.User]
                     retVal += data.User + ' if you got this message, you ran out of ' + MySet.PointName + \
                               's and have been removed from auto add.'
                 else:
@@ -423,6 +424,8 @@ def Execute(data):
         if data.GetParam(1) == 'get_cooldown' and MySet.get_cooldown == True:
             retVal = get_cooldown(data.GetParam(2))
             Parent.SendStreamMessage(str(retVal))
+        # if data.GetParam(1) == 'get_remaining' and MySet.get_remaining == True:
+        #     retVal =
 
     return
 
@@ -444,15 +447,14 @@ def Tick():
     for each in removals:
         # if it's in the list of continues adds, resubmit the command that started it.
 
-        if each.lower() in activeContinuousAdds:
+        if each.lower() in active_continuous_adds:
             del cooldownList[each]
             # if the users are still present in the viewer list, continue removing logs.
             if each.lower() in set(Parent.GetViewerList()):
-                data = activeContinuousAdds[each.lower()]
-
-                addUntilDone(activeContinuousAdds[each.lower()][0],
-                             activeContinuousAdds[each.lower()][1],
-                             activeContinuousAdds[each.lower()][2])
+                if active_continuous_adds[each.lower()][2] > 0:
+                    addUntilDone(active_continuous_adds[each.lower()][0],
+                                 active_continuous_adds[each.lower()][1],
+                                 active_continuous_adds[each.lower()][2])
 
             # if the user isn't present
             else:
@@ -538,13 +540,13 @@ def security_check(input):
 # helper function that seperates values from the data Datatype
 def addUntilDone(user, targetgame, amount):
 
-    global activeContinuousAdds
+    global active_continuous_adds
     # if the amount left is less than the voteMaximum, vote with the rest of it and remove the user from the list.
     if type(amount) == int:
         if amount < int(MySet.voteMaximum):
             add_amount = amount
             target_amount = 0
-            del activeContinuousAdds[user]
+            del active_continuous_adds[user]
             Parent.SendStreamWhisper(user, 'You have been removed from the continuous add list. '
                                            'You may now vote again normally.')
         else:
@@ -560,7 +562,7 @@ def addUntilDone(user, targetgame, amount):
         # if there's more to add, adjust the data value and add it back in
         if target_amount != 0:
             newData = (user, targetgame, target_amount)
-            activeContinuousAdds[user] = newData
+            active_continuous_adds[user] = newData
 
             cooldown = MySet.cooldownTime
             # set the cooldown and save it
@@ -581,7 +583,7 @@ def addUntilDone(user, targetgame, amount):
                                      % (user, add_amount, MySet.PointName, MySet.ResultName, targetgame))
 
         newData = (user, targetgame, amount)
-        activeContinuousAdds[user] = newData
+        active_continuous_adds[user] = newData
 
         cooldown = MySet.cooldownTime
         # set the cooldown and save it
