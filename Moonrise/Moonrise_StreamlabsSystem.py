@@ -132,7 +132,6 @@ def Init():
 
 
 def Execute(data):
-
     return
 
 
@@ -142,7 +141,7 @@ def Tick():
     global attackerDead
     global delay
 
-    respond("Time until the next attack: " + str(delay - (time()-previous_time)))
+    # respond("Time until the next attack: " + str(delay - (time()-previous_time)))
     if int(time() - previous_time) > delay:
         # spawn a new attacker if dead
         if attackerDead:
