@@ -1,9 +1,11 @@
 from DarkForestCreature import DarkForestCreature
 
+"""Colossus(60, 5.0, 500, 1.0, 1800, 1800)"""  # dpm of 140, increases over time
+
 
 class Colossus(DarkForestCreature):
 
-    def __init__(self, delay, delayMulti, attack, attackMulti, health, reward):
+    def __init__(self, delay=60, delayMulti=5.0, attack=500, attackMulti=1.0, health=1800, reward=1800):
         DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward)
         self.speed_cap = 1.0
 

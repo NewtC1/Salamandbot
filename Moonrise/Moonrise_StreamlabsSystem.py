@@ -55,27 +55,17 @@ shield_directory = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shie
 shield_damage_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shieldDamage.txt")
 campfire_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\flame.txt")
 
-attackers = [Spider(60, 1.0, 15, 1.0, 100, 240), # dpm of 15
-             Spider(60, 1.0, 15, 1.0, 100, 240),
-             Spider(60, 1.0, 15, 1.0, 100, 240),
-             Spider(60, 1.0, 15, 1.0, 100, 240),
-             Spider(60, 1.0, 15, 1.0, 100, 240),
-             Spider(60, 1.0, 15, 1.0, 100, 240),
-             ShadowBoundBear(120, 1.0, 60, 1.0, 300, 300), # dpm of 30
-             ShadowBoundBear(120, 1.0, 60, 1.0, 300, 300),
-             ShadowBoundBear(120, 1.0, 60, 1.0, 300, 300),
-             ShadowBoundBear(120, 1.0, 60, 1.0, 300, 300),
-             Beast(120, 1.0, 70, 1.0, 100, 300), # dpm of 35, increases over time
-             Beast(120, 1.0, 70, 1.0, 100, 300),
-             Colossus(60, 5.0, 500, 1.0, 1800, 1800), # dpm of 140, increases over time
-             Colossus(60, 5.0, 500, 1.0, 1800, 1800),
-             Dragon(300, 1.0, 1000, 1.0, 2000, 3600), # dpm of 200. Reward increases over time, difficult to kill.
-             Ashvine(60, 1.0, 30, 1.0, 60, 50), # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
-             Bunny(0,0,0,0,0, 1800)] # unspeakably evil
+attackers = [Spider(),  # dpm of 15
+             ShadowBoundBear(),  # dpm of 30
+             Beast(),  # dpm of 35, increases over time
+             Colossus(),  # dpm of 140, increases over time
+             Dragon(),  # dpm of 200. Reward increases over time, difficult to kill.
+             Ashvine(),  # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
+             Bunny()] # unspeakably evil
 
-#attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
+# attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
+# attackers = [Thunderjaw(1, 1.0, 5, 1.0, 600, 50)]
 current_attacker = attackers[0]
-#attackers = [Thunderjaw(1, 1.0, 5, 1.0, 600, 50)]
 
 # ---------------------------------------
 # Classes
@@ -186,15 +176,12 @@ def attack():
     with open(shield_directory, 'r', encoding='utf-8-sig') as file:
         # read the value
         shield_amount = int(file.read())
-    # respond('Shield amount is ' + str(shieldAmount))
     # deal damage to shields are there are still any remaining
     if shield_amount > 0:
         # open the current shield damage file
         with open(shield_damage_dir, 'r', encoding='utf-8-sig') as file:
             # read the value
-            # respond('opening shield damage')
             shielddamage = int(file.read())
-            # respond('Shield Damage is ' + str(shielddamage))
         # increase the shield damage
         shielddamage += damage
         retval += current_attacker.getAttack()

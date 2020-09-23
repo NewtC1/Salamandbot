@@ -17,34 +17,44 @@ class Thunderjaw(DarkForestCreature):
 
 
     def getAttack(self):
+        """Returns the attack message"""
+
         retval = ''
         if self.WeaponSystem == 'stomp':
             retval = 'The warmachine stomps its foot down and roars, challenging any who hear it.'
         if self.WeaponSystem == 'tail':
-            retval = 'Winding up, the Thunderjaw suddenly pirouettes, bringing its bladed tail crashing into the sturdy trees.'
+            retval = 'Winding up, the Thunderjaw suddenly pirouettes, ' \
+                     'bringing its bladed tail crashing into the sturdy trees.'
         if self.WeaponSystem == 'disk launcher':
-            retval = 'The automaton plants its feet and a winding sound spews from the disk launchers on its back. Four disks launch from the cannons and hover in the air above the Campgrounds, raining down explosives onto the shielded shelter.'
+            retval = 'The automaton plants its feet and a winding sound spews from the disk launchers on its back. ' \
+                     'Four disks launch from the cannons and hover in the air above the Campgrounds, ' \
+                     'raining down explosives onto the shielded shelter.'
         if self.WeaponSystem == 'plasma cannon':
-            retval = '*plink*'
+            retval += 'A hail of plasma bolts erupt from the machine.'
             self.PlasmaCannonCounter -= 1
         if self.WeaponSystem == 'charge':
-            retval = 'The beast takes a step back, then charges toward the Campgrounds, slamming its armored hide into the shields.'
+            retval = 'The beast takes a step back, then charges toward the Campgrounds, ' \
+                     'slamming its armored hide into the shields.'
 
-        if self.numberOfDelayedAttacks > 0:
-            self.numberOfDelayedAttacks -= 1
-            self.setBaseAttackStrength(self.getBaseAttackStrength() + (self.DelayAttackDamage*self.numberOfDelayedAttacks))
-            retval += ' The disks fire rockets down at the shields. One of them is engulfed in flames and falls to the ground, smoking.'
-
-        weapon = random.randint(1,5)
-
-        if self.WeaponSystem == 'plasma cannon' and self.PlasmaCannonCounter > 0:
-            self.setPlasmaCannon()
-        else:
-            self.selectWeapon()
 
         if self.PlasmaCannonCounter == 0:
             retval += ' The plasma cannons overheat and stop firing.'
             self.PlasmaCannonCounter = 6
+
+        if self.numberOfDelayedAttacks > 0:
+            self.numberOfDelayedAttacks -= 1
+            self.setBaseAttackStrength(self.getBaseAttackStrength() + (self.DelayAttackDamage*self.numberOfDelayedAttacks))
+            retval += ' The disks fire rockets down at the shields. ' \
+                      'One of them is engulfed in flames and falls to the ground, smoking.'
+
+
+        weapon = random.randint(1, 5)
+
+
+        if self.WeaponSystem == 'plasma cannon' and self.PlasmaCannonCounter > 0:
+            self.setPlasmaCannon()
+        else:
+            self.selectWeapon(weapon)
 
         # set the next weapon
         return retval
@@ -59,8 +69,8 @@ class Thunderjaw(DarkForestCreature):
         if self.WeaponSystem == 'disc launcher':
             retval = 'The automaton plants its feet and a winding sound spews from the disk launchers on its back. Four disks launch from the cannons and hover in the air above the Campgrounds, raining down explosives onto the shielded shelter.'
         if self.WeaponSystem == 'plasma cannon':
-            retval = '*plink*'
-            self.PlasmaCannonCounter -= 1
+            for each in range(self.PlasmaCannonCounter):
+                retval += '*plink*'
         if self.WeaponSystem == 'charge':
             retval = 'The beast takes a step back, then charges toward the Campgrounds, slamming its armored hide into the shields.'
         return retval
@@ -101,7 +111,7 @@ class Thunderjaw(DarkForestCreature):
         self.setAttackStrengthMulti(1.0)
         self.WeaponSystem = 'tail'
 
-    def selectWeapon(self):
+    def selectWeapon(self, weapon):
         if weapon == 1:
             self.setStomp()
         if weapon == 2:

@@ -8,11 +8,11 @@ class DarkForestCreature:
     name = 'name'
     spawnMesage = ''
 
-    def __init__(self, Delay, DelayMulti, Attack, AttackMulti, health, reward):
-        self.baseAttackDelay = Delay
-        self.attackDelayMulti = DelayMulti
-        self.baseAttackStrength = Attack
-        self.attackStrengthMulti = AttackMulti
+    def __init__(self, delay=600, delay_multi=1.0, attack=60, attack_multi=1.0, health=600, reward=600):
+        self.baseAttackDelay = delay
+        self.attackDelayMulti = delay_multi
+        self.baseAttackStrength = attack
+        self.attackStrengthMulti = attack_multi
         self.health = health
         self.reward = reward
 

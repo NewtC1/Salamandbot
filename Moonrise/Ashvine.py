@@ -1,11 +1,12 @@
 from DarkForestCreature import DarkForestCreature
 
+"""Ashvine(60, 1.0, 30, 1.0, 60, 50), # dpm of 30."""
+
 
 class Ashvine(DarkForestCreature):
 
-    def __init__(self, delay, delayMulti, attack, attackMulti, health, reward):
+    def __init__(self, delay=60, delayMulti=1.0, attack=30, attackMulti=1.0, health=60, reward=50):
         DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward)
-
 
     def getAttack(self):
         self.setHealth(int(self.getHealth()*1.3))
@@ -18,9 +19,12 @@ class Ashvine(DarkForestCreature):
         self.setHealth(self.getHealth()*2)
         self.setReward(self.getReward() + 60)
         self.setAttackStrengthMulti(self.getAttackStrengthMulti()+0.5)
-        retval = 'Growing through the dirt, the vines sprout underneath the central fire, throwing out ' + str(int(self.baseAttackStrength * self.attackStrengthMulti)) + ' logs into the surrounding Forest. But this time, the vines don\'t go away.'
+        retval = 'Growing through the dirt, the vines sprout underneath the central fire, throwing out ' + \
+                 str(int(self.baseAttackStrength * self.attackStrengthMulti)) + \
+                 ' logs into the surrounding Forest. But this time, the vines don\'t go away.'
         return retval
 
     def getSpawnMessage(self):
-        retval = 'An unusual sound emanates from the Forest... some sort of elastic?'
+        retval = 'A column of smoke can be seen deep in the woods, even against the inky night sky. A purple glow' \
+                 'answers the Campgrounds. A Cinder lurks in the darkness.'
         return retval

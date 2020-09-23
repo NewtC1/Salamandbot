@@ -1,9 +1,10 @@
 from DarkForestCreature import DarkForestCreature
+"""Bunny(0,0,0,0,0, 1800)] # unspeakably evil"""
 
 
 class Bunny(DarkForestCreature):
 
-    def __init__(self, delay, delayMulti, attack, attackMulti, health, reward):
+    def __init__(self, delay=0, delayMulti=0, attack=0, attackMulti=0, health=0, reward=0):
         DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward)
 
 

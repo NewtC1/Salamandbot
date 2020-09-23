@@ -1,9 +1,10 @@
 from DarkForestCreature import DarkForestCreature
+Dragon(300, 1.0, 1000, 1.0, 2000, 3600),  # dpm of 200. Reward increases over time, difficult to kill.
 
 
 class Dragon(DarkForestCreature):
 
-    def __init__(self, delay, delayMulti, attack, attackMulti, health, reward):
+    def __init__(self, delay=300, delayMulti=1.0, attack=1000, attackMulti=1.0, health=2000, reward=3600):
         DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward)
 
     def getAttack(self):
