@@ -1,6 +1,8 @@
 from DarkForestCreature import DarkForestCreature
 import random
 
+# Thunderjaw(1, 1.0, 5, 1.0, 600, 50)
+
 
 class Thunderjaw(DarkForestCreature):
 
@@ -11,8 +13,8 @@ class Thunderjaw(DarkForestCreature):
     PlasmaCannonCounter = 6
     WeaponSystem = 'stomp'
 
-    def __init__(self, delay, delayMulti, attack, attackMulti, health, reward, incineration_resist=3):
-        DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward)
+    def __init__(self, delay=50, delayMulti=2.0, attack=50, attackMulti=1.0, health=800, reward=2700, incineration_resist=3):
+        DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward, incineration_resist)
         self.setStomp()
 
     def getAttack(self):
@@ -79,6 +81,7 @@ class Thunderjaw(DarkForestCreature):
         self.numberOfDelayedAttacks = 4
         self.WeaponSystem = 'disk launcher'
         self.setBaseAttackStrength(0)
+        self.setBaseAttackDelay(50)
 
     def setPlasmaCannon(self):
         """Sets a very low cooldown repeated attack that does low damage."""

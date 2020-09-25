@@ -68,3 +68,9 @@ class DarkForestCreature:
     def getSpawnMessage(self):
         retval = self.spawnMesage
         return retval
+
+    def GetIncResist(self):
+        return self.incineration_resist
+
+    def SetIncResist(self, new_value):
+        self.incineration_resist = new_value

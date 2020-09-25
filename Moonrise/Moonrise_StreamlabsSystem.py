@@ -60,10 +60,10 @@ attackers = [Spider(),  # dpm of 15
              Colossus(),  # dpm of 140, increases over time
              Dragon(),  # dpm of 200. Reward increases over time, difficult to kill.
              Ashvine(),  # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
-             Bunny()] # unspeakably evil
+             Bunny(),
+             Thunderjaw()] # unspeakably evil
 
 # attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
-attackers = [Thunderjaw(1, 1.0, 5, 1.0, 600, 50)]
 current_attacker = attackers[0]
 
 # ---------------------------------------
@@ -249,39 +249,54 @@ def counter_attack(output):
         # read the value
         campfire = int(file.read())
 
+    inc_resist = current_attacker.GetIncResist()
+
     # respond(campfire >= campfireAttackAmount)
     if campfire >= current_attacker.getHealth():
         # open the current shield file
         with open(shield_directory, 'r', encoding='utf-8-sig') as file:
             # read the value
-            shieldAmount = file.read()
+            shield_amount = int(file.read())
 
         # The the salamander counter attacks if it has the logs to beat the current attacker.
-        if shieldAmount > 0:
+        if shield_amount > 0:
+
             if (current_attacker.getHealth() + campfireAttackSafetyThreshold) <= campfire:
-                # kill the attacker
-                retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
-                with open(campfire_dir, 'r', encoding='utf-8-sig') as file:
-                    # read the value
-                    campfire = int(file.read())
-                campfire = campfire - current_attacker.getHealth()
-                # open and save the new damage
-                with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
-                    # write the value back
-                    file.write(str(campfire))
-                delay = kill_attacker()
-                retval += " The attacker has been slain. You gain " + str(
-                    current_attacker.getReward()) + " more seconds until the next attack."
-                retval += ' Combo counter is at ' + str(reward_multi)
+                if inc_resist < 1:
+                    # kill the attacker
+                    retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
+                    campfire = campfire - current_attacker.getHealth()
+                    # open and save the new damage
+                    with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
+                        # write the value back
+                        file.write(str(campfire))
+                    delay = kill_attacker()
+                    retval += " The attacker has been slain. You gain " + str(
+                        current_attacker.getReward()) + " more seconds until the next attack."
+                    retval += ' Combo counter is at ' + str(reward_multi)
+                else:
+                    current_attacker.SetIncResist(inc_resist - 1)
+                    retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
+                              ' Burns race across the creature\'s body. ' + str(inc_resist-1) + ' more hit(s).'
         # if there are no shields left, ignore the safety threshold
         else:
             if current_attacker.getHealth() < campfire:
                 # kill the attacker
-                retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
-                delay = kill_attacker()
-                retval += " The attacker has been slain. You gain " + str(
-                    current_attacker.getReward()) + " more seconds until the next attack."
-                retval += ' Combo counter is at ' + str(reward_multi)
+                if inc_resist < 1:
+                    retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
+                    campfire = campfire - current_attacker.getHealth()
+                    # open and save the new damage
+                    with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
+                        # write the value back
+                        file.write(str(campfire))
+                    delay = kill_attacker()
+                    retval += " The attacker has been slain. You gain " + str(
+                        current_attacker.getReward()) + " more seconds until the next attack."
+                    retval += ' Combo counter is at ' + str(reward_multi)
+                else:
+                    current_attacker.SetIncResist(inc_resist-1)
+                    retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
+                              ' Burns race across the creature\'s body. ' + str(inc_resist-1) + ' more hit(s).'
     respond(retval)
 
 
