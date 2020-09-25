@@ -141,19 +141,20 @@ def Tick():
     global attackerDead
     global delay
 
-    # respond("Time until the next attack: " + str(delay - (time()-previous_time)))
-    if int(time() - previous_time) > delay:
-        # spawn a new attacker if dead
-        if attackerDead:
-            attacker = attackers[Parent.GetRandom(0, len(attackers))]
-            set_new_attacker(attacker)
-        else:
-            # do an attack action
-            attack()
-            previous_time = time()
+    if MySet.OnlyLive:
+        # respond("Time until the next attack: " + str(delay - (time()-previous_time)))
+        if int(time() - previous_time) > delay:
+            # spawn a new attacker if dead
+            if attackerDead:
+                attacker = attackers[Parent.GetRandom(0, len(attackers))]
+                set_new_attacker(attacker)
+            else:
+                # do an attack action
+                attack()
+                previous_time = time()
 
-        if not attackerDead:
-            delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
+            if not attackerDead:
+                delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
 
     return
 
@@ -277,7 +278,7 @@ def counter_attack(output):
                 else:
                     current_attacker.SetIncResist(inc_resist - 1)
                     retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
-                              ' Burns race across the creature\'s body. ' + str(inc_resist-1) + ' more hit(s).'
+                              ' Burns race across the creature\'s body.'
         # if there are no shields left, ignore the safety threshold
         else:
             if current_attacker.getHealth() < campfire:
