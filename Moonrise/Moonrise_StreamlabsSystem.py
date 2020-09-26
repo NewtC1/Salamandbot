@@ -46,8 +46,8 @@ previous_time = 0
 campfireAttackSafetyThreshold = 200 # if there are still shields left, the campfire will not go below this.
 shield_health = 1000
 attackerDead = False
-reward_multi = 1.0
-rewardMultiCap = 2.0
+combo_counter = 1.0
+combo_counter_cap = 2.0
 delay = 0
 
 # ability cooldowns
@@ -158,7 +158,7 @@ def Execute(data):
                 soil_kill_orders_remaining -= 1
             else:
                 respond('"I think we can wait this one out a bit. Let me know when it actually breaks through." Soil '
-                        'grins. "What\s life without a bit of danger?"')
+                        'grins. "What\'s life without a bit of danger?"')
 
         # restore command. resets the shield's damage value.
         if data.GetParam(1).lower() == "restore":
@@ -210,8 +210,7 @@ def Tick():
     if int(time() - previous_time) > delay:
         # spawn a new attacker if dead
         if attackerDead:
-            attacker = attackers[Parent.GetRandom(0, len(attackers))]
-            set_new_attacker(attacker)
+            set_new_attacker(spawn_attacker())
         else:
             # do an attack action
             attack()
@@ -228,7 +227,7 @@ def Tick():
 
 
 def attack():
-    global reward_multi
+    global combo_counter
     global shield_directory
     global shield_damage_dir
     global campfire_dir
@@ -269,7 +268,7 @@ def attack():
                 # respond('Inside the write.')
                 file.write(str(shield_amount))
             retval += ' The shield shudders and falls, splintering across the ground. There are now ' + str(shield_amount) + ' shields left.'
-            reward_multi = 1.0
+            combo_counter = 1.0
             # resets the supporting abilities.
             soil_restore_order_cooldown = False
             bjorn_delay_order_cooldown = False
@@ -312,7 +311,7 @@ def counter_attack(output):
 
     global campfireAttackSafetyThreshold
     global current_attacker
-    global reward_multi
+    global combo_counter
     global delay
 
     # The the salamander counter attacks if it has the logs to beat the current attacker.
@@ -344,7 +343,7 @@ def counter_attack(output):
                     delay = kill_attacker()
                     retval += " The attacker has been slain. You gain " + str(
                         current_attacker.getReward()) + " more seconds until the next attack."
-                    retval += ' Combo counter is at ' + str(reward_multi)
+                    retval += ' Combo counter is at ' + str(combo_counter)
                 else:
                     current_attacker.SetIncResist(inc_resist - 1)
                     retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
@@ -361,9 +360,10 @@ def counter_attack(output):
                         # write the value back
                         file.write(str(campfire))
                     delay = kill_attacker()
-                    retval += " The attacker has been slain. You gain " + str(
-                        current_attacker.getReward()) + " more seconds until the next attack."
-                    retval += ' Combo counter is at ' + str(reward_multi)
+                    retval += " The attacker has been slain. You gain " + str(delay) + \
+                              " more seconds until the next attack."
+                    retval += ' Combo counter is at ' + str(combo_counter)
+                    Parent.log('Moonrise','Combo counter is at ' + str(combo_counter))
                 else:
                     current_attacker.SetIncResist(inc_resist-1)
                     retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
@@ -384,13 +384,13 @@ def set_new_attacker(attacker):
 def kill_attacker():
     # currentAttacker
     global attackerDead
-    global reward_multi
+    global combo_counter
     global delay
 
-    if reward_multi < rewardMultiCap:
-        reward_multi += 0.1
+    if combo_counter < combo_counter_cap:
+        combo_counter += 0.1
 
-    reward = current_attacker.getReward()*reward_multi
+    reward = current_attacker.getReward() * combo_counter
     attackerDead = True
 
     return reward
@@ -416,3 +416,61 @@ def enactFailure():
             A silver orb shines between her horns, and a kopesh of moonlight is embraced in her hands. 
             Soraviel, Moon Goddess of Death and Rebirth, makes her presence known. 
             """)
+
+
+def spawn_attacker():
+    """
+    attackers = [Spider(),  # dpm of 15
+                 ShadowBoundBear(),  # dpm of 30
+                 Beast(),  # dpm of 35, increases over time
+                 Colossus(),  # dpm of 140, increases over time
+                 Dragon(),  # dpm of 200. Reward increases over time, difficult to kill.
+                 Ashvine(),  # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
+                 Bunny(),   # unspeakably evil
+                 Thunderjaw()]
+    """
+    roll = Parent.GetRandom(1,100)
+
+    if get_combo_counter() < 1.2:
+        if roll < 50:
+            return Spider()
+        elif roll < 80:
+            return Beast()
+        elif roll < 90:
+            return Colossus()
+        else:
+            return Bunny()
+    elif get_combo_counter() < 1.4:
+        if roll < 30:
+            return Spider()
+        elif roll < 40:
+            return Beast()
+        elif roll < 80:
+            return Colossus()
+        elif roll < 85:
+            return Dragon()
+        elif roll < 90:
+            return Thunderjaw()
+        else:
+            return Bunny()
+    elif get_combo_counter() < 1.8:
+        if roll < 40:
+            return Beast()
+        elif roll < 50:
+            return Colossus()
+        elif roll < 70:
+            return Dragon()
+        elif roll < 90:
+            return Thunderjaw()
+        else:
+            return Ashvine()
+    elif get_combo_counter() < 2.0:
+        if roll < 40:
+            return Dragon()
+        elif roll < 90:
+            return Thunderjaw()
+        else:
+            return Ashvine()
+
+def get_combo_counter():
+    return combo_counter
