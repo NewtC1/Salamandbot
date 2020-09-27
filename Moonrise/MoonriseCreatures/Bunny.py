@@ -4,7 +4,7 @@ from DarkForestCreature import DarkForestCreature
 
 class Bunny(DarkForestCreature):
 
-    def __init__(self, delay=0, delayMulti=0, attack=0, attackMulti=0, health=0, reward=0):
+    def __init__(self, delay=0, delayMulti=0, attack=0, attackMulti=0, health=0, reward=100):
         DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward)
 
 

@@ -12,14 +12,7 @@ from time import time
 from io import open
 
 sys.path.append(os.path.dirname(__file__))
-from Dragon import Dragon
-from Beast import Beast
-from Colossus import Colossus
-from ShadowBoundBear import ShadowBoundBear
-from Spider import Spider
-from Ashvine import Ashvine
-from Bunny import Bunny
-from Thunderjaw import Thunderjaw
+from MoonriseCreatures import Dragon, Beast, Colossus, Spider, Ashvine, Bunny, Thunderjaw
 
 
 # ---------------------------------------
@@ -61,17 +54,8 @@ shield_directory = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shie
 shield_damage_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shieldDamage.txt")
 campfire_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\flame.txt")
 
-attackers = [Spider(),  # dpm of 15
-             ShadowBoundBear(),  # dpm of 30
-             Beast(),  # dpm of 35, increases over time
-             Colossus(),  # dpm of 140, increases over time
-             Dragon(),  # dpm of 200. Reward increases over time, difficult to kill.
-             Ashvine(),  # dpm of 30. Increases over time, harder to kill over time, reward increases over time.
-             Bunny(),
-             Thunderjaw()] # unspeakably evil
-
 # attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
-current_attacker = attackers[0]
+current_attacker = Bunny.Bunny()
 
 # ---------------------------------------
 # Classes
@@ -130,7 +114,7 @@ def Init():
     # Load in saved settings
     MySet = Settings(settingsFile)
     # Set the baseline attacker
-    current_attacker = attackers[0]
+    current_attacker = Bunny.Bunny()
     # set start values
     previous_time = time()
     delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
@@ -198,7 +182,6 @@ def Execute(data):
 
 def Tick():
     global previous_time
-    global attackers
     global attackerDead
     global delay
 
@@ -433,44 +416,44 @@ def spawn_attacker():
 
     if get_combo_counter() < 1.2:
         if roll < 50:
-            return Spider()
+            return Spider.Spider()
         elif roll < 80:
-            return Beast()
+            return Beast.Beast()
         elif roll < 90:
-            return Colossus()
+            return Colossus.Colossus()
         else:
-            return Bunny()
+            return Bunny.Bunny()
     elif get_combo_counter() < 1.4:
         if roll < 30:
-            return Spider()
+            return Spider.Spider()
         elif roll < 40:
-            return Beast()
+            return Beast.Beast()
         elif roll < 80:
-            return Colossus()
+            return Colossus.Colossus()
         elif roll < 85:
-            return Dragon()
+            return Dragon.Dragon()
         elif roll < 90:
-            return Thunderjaw()
+            return Thunderjaw.Thunderjaw()
         else:
-            return Bunny()
+            return Bunny.Bunny()
     elif get_combo_counter() < 1.8:
         if roll < 40:
-            return Beast()
+            return Beast.Beast()
         elif roll < 50:
-            return Colossus()
+            return Colossus.Colossus()
         elif roll < 70:
-            return Dragon()
+            return Dragon.Dragon()
         elif roll < 90:
-            return Thunderjaw()
+            return Thunderjaw.Thunderjaw()
         else:
-            return Ashvine()
+            return Ashvine.Ashvine()
     elif get_combo_counter() < 2.0:
         if roll < 40:
-            return Dragon()
+            return Dragon.Dragon()
         elif roll < 90:
-            return Thunderjaw()
+            return Thunderjaw.Thunderjaw()
         else:
-            return Ashvine()
+            return Ashvine.Ashvine()
 
 def get_combo_counter():
     return combo_counter
