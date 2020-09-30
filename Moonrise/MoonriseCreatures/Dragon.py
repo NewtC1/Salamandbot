@@ -4,7 +4,7 @@ from DarkForestCreature import DarkForestCreature
 
 class Dragon(DarkForestCreature):
 
-    def __init__(self, delay=300, delayMulti=1.0, attack=1000, attackMulti=1.0, health=2000, reward=3600,
+    def __init__(self, delay=300, delayMulti=1.0, attack=1000, attackMulti=1.0, health=900, reward=3600,
                  incineration_resist=2):
         DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward, incineration_resist)
 
