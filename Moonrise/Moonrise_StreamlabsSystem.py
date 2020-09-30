@@ -134,13 +134,16 @@ def Execute(data):
     global pending_imp_results
 
     # if they are addressing the imp, see what the imp says
-    if str(current_attacker.__class__.__name__).lower() == "imp" and data.GetParam(0).lower() == "!imp" and data.GetParamCount() > 1:
-        answer = " ".join(data.Message.split(" ")[1:])
-        result = current_attacker.check_answer(answer)
-        pending_imp_results.append(result)
-        # get rid of the imp after they try and answer the question
-        respond("The imp disappears with a rude noise and a cackle. The last thing you hear is \""+ result + ".\"")
-        delay = kill_attacker()
+    if str(current_attacker.__class__.__name__).lower() == "imp" and data.GetParam(0).lower() == "!imp":
+        if data.GetParamCount() > 1:
+            answer = " ".join(data.Message.split(" ")[1:])
+            result = current_attacker.check_answer(answer)
+            pending_imp_results.append(result)
+            # get rid of the imp after they try and answer the question
+            respond("The imp disappears with a rude noise and a cackle. The last thing you hear is \""+ result + ".\"")
+            delay = kill_attacker()
+        else:
+            respond(current_attacker.riddle)
 
     if data.GetParam(0).lower() == "!soil" and data.GetParamCount() > 1:
         if data.GetParam(1).lower() == "kill":
@@ -349,8 +352,11 @@ def counter_attack(output):
                     retval += ' Combo counter is at ' + str(combo_counter)
                 else:
                     current_attacker.SetIncResist(inc_resist - 1)
-                    retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
-                              ' Burns race across the creature\'s body.'
+                    if not str(current_attacker.__class__.__name__).lower():
+                        retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
+                                  ' Burns race across the creature\'s body.'
+                    else:
+                        retval += ''
         # if there are no shields left, ignore the safety threshold
         else:
             if current_attacker.getHealth() < campfire:
@@ -381,6 +387,7 @@ def set_new_attacker(attacker):
     current_attacker = attacker
     attackerDead = False
     return attacker.getSpawnMessage()
+
 
 def kill_attacker():
     # currentAttacker

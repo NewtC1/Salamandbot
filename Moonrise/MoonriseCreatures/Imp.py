@@ -51,7 +51,10 @@ class Imp(DarkForestCreature):
         Returns the attack phrase. In this case the imp just asks the riddle.
         :return:
         """
-        return self.riddle
+        retval = "Oblivious to the fire trying to destroy it, " \
+                 "the tiny creature chokes out a question between giggles: \"" + self.riddle + "\""
+
+        return retval
 
     def check_answer(self, answer):
         """
