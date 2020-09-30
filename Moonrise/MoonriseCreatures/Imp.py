@@ -6,7 +6,18 @@ from DarkForestCreature import DarkForestCreature
 class Imp(DarkForestCreature):
 
     riddles = {"What is Zephnos known for eating?": "The Moon",
-               "What is the only friendly dark forest creature?": "The Ants"}
+               "What is the only friendly dark forest creature?": "The Ants",
+               "The Ants gave Howie a sculpture of what?": "The Salamander",
+               "Soil was born in what?": "Silver",
+               "What was the first color Zephnos saw?": "Purple",
+               "What really controls the Dark Forest?": "The Salamanderflame",
+               "Who killed Zephnos?": "Bjorn",
+               "What are the names of the bear cubs Bjorn adopted?": "Villi and Ve",
+               "What is the first law of the Dark Forest?": "Do not enter the light of the campgrounds",
+               "What is the second law of the Dark Forest?": "Do not attempt to leave the Dark Forest",
+               "What is the third law of the Dark Forest?": "Kill any human who enters the Dark Forest",
+               "Soil is who's daughter?": "Zephnos",
+               }
     riddle = ""
 
     def __init__(self, delay=600, health=0, reward=0, inc_resist=1000):

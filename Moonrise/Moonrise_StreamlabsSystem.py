@@ -46,7 +46,7 @@ delay = 0
 # ability cooldowns
 soil_kill_orders_remaining = 1
 soil_restore_order_cooldown = False
-bjorn_splinter_order_remaining = 1
+bjorn_splinter_order_remaining = 3
 bjorn_delay_order_cooldown = False
 
 # imp
