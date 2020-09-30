@@ -12,7 +12,7 @@ from time import time
 from io import open
 
 sys.path.append(os.path.dirname(__file__))
-from MoonriseCreatures import Dragon, Beast, Colossus, Spider, Ashvine, Bunny, Thunderjaw
+from MoonriseCreatures import Dragon, Beast, Colossus, Spider, Ashvine, Bunny, Thunderjaw, Imp
 
 
 # ---------------------------------------
@@ -49,13 +49,15 @@ soil_restore_order_cooldown = False
 bjorn_splinter_order_remaining = 1
 bjorn_delay_order_cooldown = False
 
+# imp
+pending_imp_results = []
 
 shield_directory = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shields.txt")
 shield_damage_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shieldDamage.txt")
 campfire_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\flame.txt")
 
 # attackers = [DarkForestCreature(20, 1.0, 5, 1.0, 20, 60)]
-current_attacker = Bunny.Bunny()
+current_attacker = None
 
 # ---------------------------------------
 # Classes
@@ -114,10 +116,9 @@ def Init():
     # Load in saved settings
     MySet = Settings(settingsFile)
     # Set the baseline attacker
-    current_attacker = Bunny.Bunny()
+    current_attacker = Imp.Imp()
     # set start values
     previous_time = time()
-    delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
     # End of Init
     return
 
@@ -129,8 +130,17 @@ def Execute(data):
     global soil_restore_order_cooldown
     global bjorn_splinter_order_remaining
     global bjorn_delay_order_cooldown
-
     global shield_damage_dir
+    global pending_imp_results
+
+    # if they are addressing the imp, see what the imp says
+    if str(current_attacker.__class__.__name__).lower() == "imp" and data.GetParam(0).lower() == "!imp" and data.GetParamCount() > 1:
+        answer = " ".join(data.Message.split(" ")[1:])
+        result = current_attacker.check_answer(answer)
+        pending_imp_results.append(result)
+        # get rid of the imp after they try and answer the question
+        respond("The imp disappears with a rude noise and a cackle. The last thing you hear is \""+ result + ".\"")
+        delay = kill_attacker()
 
     if data.GetParam(0).lower() == "!soil" and data.GetParamCount() > 1:
         if data.GetParam(1).lower() == "kill":
@@ -184,6 +194,7 @@ def Tick():
     global previous_time
     global attackerDead
     global delay
+    global pending_imp_results
 
     # if only live is enable, do not run offline
     if MySet.OnlyLive and not Parent.IsLive():
@@ -193,7 +204,16 @@ def Tick():
     if int(time() - previous_time) > delay:
         # spawn a new attacker if dead
         if attackerDead:
-            set_new_attacker(spawn_attacker())
+            retval = set_new_attacker(spawn_attacker()) + " "
+
+
+            # if the attacker is not an imp, go through the list of imp rewards and clear it.
+            if str(current_attacker.__class__.__name__).lower() != "imp":
+                for phrase in pending_imp_results:
+                    retval += resolve_imp_phrase(phrase) + " "
+                pending_imp_results = []
+
+            respond(retval)
         else:
             # do an attack action
             attack()
@@ -358,11 +378,9 @@ def counter_attack(output):
 def set_new_attacker(attacker):
     global current_attacker
     global attackerDead
-
-    respond(attacker.getSpawnMessage())
     current_attacker = attacker
     attackerDead = False
-
+    return attacker.getSpawnMessage()
 
 def kill_attacker():
     # currentAttacker
@@ -415,7 +433,9 @@ def spawn_attacker():
     roll = Parent.GetRandom(1,100)
 
     if get_combo_counter() < 1.2:
-        if roll < 50:
+        if roll < 20:
+            return Imp.Imp()
+        elif roll < 50:
             return Spider.Spider()
         elif roll < 80:
             return Beast.Beast()
@@ -424,7 +444,9 @@ def spawn_attacker():
         else:
             return Bunny.Bunny()
     elif get_combo_counter() < 1.4:
-        if roll < 30:
+        if roll < 10:
+            return Imp.Imp()
+        elif roll < 30:
             return Spider.Spider()
         elif roll < 40:
             return Beast.Beast()
@@ -437,7 +459,9 @@ def spawn_attacker():
         else:
             return Bunny.Bunny()
     elif get_combo_counter() < 1.8:
-        if roll < 40:
+        if roll < 5:
+            return Imp.Imp()
+        elif roll < 40:
             return Beast.Beast()
         elif roll < 50:
             return Colossus.Colossus()
@@ -455,5 +479,96 @@ def spawn_attacker():
         else:
             return Ashvine.Ashvine()
 
+
 def get_combo_counter():
+    global combo_counter
     return combo_counter
+
+
+def resolve_imp_phrase(phrase):
+    global delay
+    # respond("Resolving " + phrase)
+
+    """
+    Possible reward phrases include:
+        "aegis" = add shield
+        "Yanaviel" = restore
+        "Soraviel" = kill creature
+        "aggression" = attack
+        "growth" = buff creature
+        "decay" = splinter creature
+        "dragon" = double base reward
+    :param phrase:
+    :return:
+    """
+    retval = ""
+
+    if phrase.lower() == "aegis":
+        set_shields(get_shields() + 1)
+        retval = "Before your eyes, the damage on the shield tree melts away."
+
+    if phrase.lower() == "yanaviel":
+        set_shield_damage("0")
+        retval = "Before your eyes, the damage on the shield tree melts away."
+
+    if phrase.lower() == "soraviel":
+        delay = kill_attacker()
+        retval = "As the creature approaches, a mysterious force hits it. It goes sprawling back into the Forest," \
+                 " meeting its end on a protruding tree root."
+
+    if phrase.lower() == "aggression":
+        set_campfire(get_campfire()-100)
+        retval = "As you watch, the campfire blazes with a sudden ferocity. Rather than the usual blast of flame, " \
+                 "it simply burns through another hundred logs."
+
+    if phrase.lower() == "growth":
+        current_attacker.setHealth(current_attacker.getHealth()*2)
+        current_attacker.setAttackStrengthMulti(current_attacker.getAttackStrengthMulti()*2)
+        current_attacker.setAttackDelayMulti(current_attacker.getAttackDelayMulti()/2)
+        retval = "The creature approaches the campfire, but there's something different about this one. " \
+                 "It's bigger, meaner, and angrier."
+
+    if phrase.lower() == "decay":
+        current_attacker.SetIncResist(0)
+        retval = "The approaching creature seems diseased. While no weaker, its skin is paper thin, and it sweats a" \
+                 " greasy substance."
+
+    if phrase.lower() == "dragon":
+        current_attacker.setReward(current_attacker.getReward()*2)
+        retval = "This creature is no bigger, no weaker, and no more flammable than the rest. But it IS shinier " \
+                 "than the rest."
+
+    return retval
+
+
+def set_shield_damage(value):
+    with open(shield_damage_dir, 'w', encoding='utf-8-sig') as file:
+        file.write(value)
+
+
+def set_shields(value):
+    shield_directory = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
+    with open(shield_directory, 'w+') as f:
+        f.write(str(value))
+
+
+def get_shields():
+    shield_directory = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
+    with open(shield_directory, 'r') as f:
+        shields = int(f.read().decode('utf-8-sig'))
+
+    return shields
+
+
+def get_campfire():
+    with open(campfire_dir, 'r', encoding='utf-8-sig') as file:
+        # read the value
+        campfire = int(file.read())
+    return campfire
+
+
+def set_campfire(value):
+    # open and save the new damage
+    with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
+        # write the value back
+        file.write(str(value))
