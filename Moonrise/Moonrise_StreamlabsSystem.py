@@ -146,7 +146,7 @@ def Execute(data):
         if data.GetParam(1).lower() == "kill":
             if soil_kill_orders_remaining > 0:
                 delay = kill_attacker()
-                respond("Soil grins an plants a hoof on the ground. "
+                respond("Soil grins and plants a hoof on the ground. "
                         "Vines, roots and flowers erupt from the ground and strangle, impale and dowse the attacker. "
                         "Her work done, Soil returns to staring at the fire.")
                 soil_kill_orders_remaining -= 1
