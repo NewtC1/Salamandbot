@@ -244,13 +244,12 @@ def Tick():
         # spawn a new attacker if dead
         if attackerDead:
             retval = set_new_attacker(spawn_attacker()) + " "
-
+            previous_time = time()
             # if the attacker is not an imp, go through the list of imp rewards and clear it.
             if str(current_attacker.__class__.__name__).lower() != "imp":
                 for phrase in pending_imp_results:
                     retval += resolve_imp_phrase(phrase) + " "
                 pending_imp_results = []
-
             respond(retval)
         else:
             # do an attack action
