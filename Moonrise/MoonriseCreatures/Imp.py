@@ -73,3 +73,4 @@ class Imp(DarkForestCreature):
         ret_val = 'An imp appears. It chortles to itself. "No, no, let me think about it. ' \
                   'I have a question somewhere..." ' \
                   'It spins in its indestructible bubble, paying no mind to the fires trying to send it home.'
+        return ret_val
