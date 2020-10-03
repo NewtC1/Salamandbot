@@ -12,10 +12,10 @@ class Imp(DarkForestCreature):
                "What was the first color Zephnos saw?": "Purple",
                "What really controls the Dark Forest?": "The Salamanderflame",
                "Who killed Zephnos?": "Bjorn",
-               "What are the names of the bear cubs Bjorn adopted?": "Villi and Ve",
-               "What is the first law of the Dark Forest?": "Do not enter the light of the campgrounds",
-               "What is the second law of the Dark Forest?": "Do not attempt to leave the Dark Forest",
-               "What is the third law of the Dark Forest?": "Kill any human who enters the Dark Forest",
+               # "What are the names of the bear cubs Bjorn adopted?": "Villi and Ve",
+               # "What is the first law of the Dark Forest?": "Do not enter the light of the campgrounds",
+               # "What is the second law of the Dark Forest?": "Do not attempt to leave the Dark Forest",
+               # "What is the third law of the Dark Forest?": "Kill any human who enters the Dark Forest",
                "Soil is who's daughter?": "Zephnos",
                }
     riddle = ""
