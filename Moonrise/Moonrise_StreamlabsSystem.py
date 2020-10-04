@@ -56,6 +56,7 @@ bjorn_cooldown_duration = 600
 
 # imp
 pending_imp_results = []
+imp_no_answer = 0
 
 shield_directory = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shields.txt")
 shield_damage_dir = os.path.join(os.path.dirname(__file__), "..\\..\\Twitch\\shieldDamage.txt")
@@ -361,6 +362,7 @@ def counter_attack(output):
     global current_attacker
     global combo_counter
     global delay
+    global imp_no_answer
 
     # The the salamander counter attacks if it has the logs to beat the current attacker.
     with open(campfire_dir, 'r', encoding='utf-8-sig') as file:
@@ -375,6 +377,27 @@ def counter_attack(output):
         with open(shield_directory, 'r', encoding='utf-8-sig') as file:
             # read the value
             shield_amount = int(file.read())
+
+        def imp_response():
+            global imp_no_answer
+            global delay
+
+            retval = ""
+            # respond(str(1 <= imp_no_answer < 3))
+            if imp_no_answer < 1:
+                imp_no_answer += 1
+            elif 1 <= imp_no_answer < 3:
+                retval += ' The imp stomps its foot. "That\'s %i times you\'ve avoided answering.' \
+                          ' At 3 I\'ll get angry.' % imp_no_answer
+                imp_no_answer += 1
+            elif imp_no_answer >= 3:
+                retval += ' The imp disappears with a howl of rage. "You were warned, and now you\'ll pay! ' \
+                          'Let today be your judgement day!"'
+                result = current_attacker.check_answer("No answer")
+                pending_imp_results.append(result)
+                delay = kill_attacker()
+                imp_no_answer = 0
+            return retval
 
         # The the salamander counter attacks if it has the logs to beat the current attacker.
         if shield_amount > 0:
@@ -398,7 +421,7 @@ def counter_attack(output):
                         retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
                                   ' Burns race across the creature\'s body.'
                     else:
-                        retval += ''
+                        retval += imp_response()
         # if there are no shields left, ignore the safety threshold
         else:
             if current_attacker.getHealth() < campfire:
@@ -417,8 +440,12 @@ def counter_attack(output):
                     Parent.log('Moonrise', 'Combo counter is at ' + str(combo_counter))
                 else:
                     current_attacker.SetIncResist(inc_resist - 1)
-                    retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
-                              ' Burns race across the creature\'s body. ' + str(inc_resist - 1) + ' more hit(s).'
+                    if not str(current_attacker.__class__.__name__).lower() == "imp":
+                        retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
+                                  ' Burns race across the creature\'s body.'
+                    else:
+                        retval += imp_response()
+
     respond(retval)
 
 
