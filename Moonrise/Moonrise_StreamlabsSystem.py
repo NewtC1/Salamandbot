@@ -186,7 +186,7 @@ def Execute(data):
                 respond('"Nope. Can\'t do that too often. Making new life is one thing, but healing? '
                         'I\'m not made for that." Soil looks down at her hooves. "What *am* I made for?"')
 
-    if data.GetParam(0).lower() == "!bjorn" and data.GetParamCount() > 1 and not bjorn_went_on_cooldown:
+    if data.GetParam(0).lower() == "!bjorn" and data.GetParamCount() > 1:
         # splinter command
         if data.GetParam(1).lower() == "splinter":
             if bjorn_splinter_order_remaining > 0 and not bjorn_on_cooldown:
