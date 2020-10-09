@@ -37,7 +37,7 @@ previous_time = 0
 
 campfireAttackSafetyThreshold = 200  # if there are still shields left, the campfire will not go below this.
 shield_health = 1000
-attackerDead = False
+attacker_dead = False
 combo_counter = 1.0
 combo_counter_cap = 2.0
 delay = 0
@@ -149,6 +149,9 @@ def Execute(data):
     global shield_damage_dir
     global pending_imp_results
 
+    with open(shield_damage_dir, "r", encoding='utf-8-sig') as f:
+        shield_damage = int(f.read())
+
     # if they are addressing the imp, see what the imp says
     if str(current_attacker.__class__.__name__).lower() == "imp" and data.GetParam(0).lower() == "!imp":
         if data.GetParamCount() > 1:
@@ -164,6 +167,10 @@ def Execute(data):
     if data.GetParam(0).lower() == "!soil" and data.GetParamCount() > 1:
         if data.GetParam(1).lower() == "kill":
             if soil_kill_orders_remaining > 0 and not soil_on_cooldown:
+                if attacker_dead:
+                    respond('"Attack what? There\'s nothing out there." Soil looks at you, clearly doubting your '
+                            'sanity.')
+                    return
                 delay = kill_attacker()
                 respond("Soil grins and plants a hoof on the ground. "
                         "Vines, roots and flowers erupt from the ground and strangle, impale and dowse the attacker. "
@@ -176,26 +183,39 @@ def Execute(data):
                     Parent.SetOBSSourceRender("Soil Kill", False, "Capture", callback)
             else:
                 respond('"I think we can wait this one out a bit. Let me know when it actually breaks through." Soil '
-                        'grins. "What\'s life without a bit of danger?"')
+                        'grins, showing off her sharpened teeth. "What\'s life without a bit of danger?"')
 
         # restore command. resets the shield's damage value.
         if data.GetParam(1).lower() == "restore":
             if not soil_on_cooldown:
+                if shield_damage == 0:
+                    respond('"Nuh-uh chief. Those trees are as green as they get." Soil leans back on her log, '
+                            'twirling a glowing moonflower in her hand. "Maybe save my talents for something actually '
+                            'threatening? Just a thought."')
+                    return
+
                 with open(shield_damage_dir, 'w', encoding='utf-8-sig') as file:
                     file.write("0")
                 respond("Placing a hand on the nearest damaged shield, Soil convinces life to flow into the tree. "
-                        "Sap flows back into the rents in its bark, and the bark reseals.")
+                        "Sap flows back into the gaping wounds in its bark, and the bark reseals.")
                 soil_went_on_cooldown = time()
                 soil_on_cooldown = True
                 Parent.SetOBSSourceRender("Soil Ready", False, "Capture", callback)
             else:
                 respond('"Nope. Can\'t do that too often. Making new life is one thing, but healing? '
-                        'I\'m not made for that." Soil looks down at her hooves. "What *am* I made for?"')
+                        'I\'m not made for that." Soil looks down at her hooves, lost in thought. '
+                        '"What *am* I made for?"')
 
     if data.GetParam(0).lower() == "!bjorn" and data.GetParamCount() > 1:
         # splinter command
         if data.GetParam(1).lower() == "splinter":
             if bjorn_splinter_order_remaining > 0 and not bjorn_on_cooldown:
+                if current_attacker.GetIncResist() == 0:
+                    respond('Bjorn doesn\'t even bother to move. "No armor, no point."')
+                    return
+                if attacker_dead:
+                    respond('"Nothing\'s there yet." Bjorn leans back against the tree he\'s climbed.')
+                    return
                 current_attacker.SetIncResist(0)
                 respond('Bjorn wordlessly walks from the Campgrounds. Minutes pass. A scream sounds in the distance. '
                         'Bjorn returns. "Job\'s done." He slumps back onto his log.')
@@ -211,6 +231,9 @@ def Execute(data):
         # delay command
         if data.GetParam(1).lower() == "delay":
             if not bjorn_on_cooldown:
+                if attacker_dead:
+                    respond('Bjorn shrugs. "Nothing out there right now."')
+                    return
                 delay = delay * 5
                 respond('Bjorn once more disappears into the trees, taking his bow and several poisoned arrows. '
                         'It\'s hard to track his movements as he disappears into the gloom. A few minutes later he '
@@ -225,7 +248,7 @@ def Execute(data):
 
 def Tick():
     global previous_time
-    global attackerDead
+    global attacker_dead
     global delay
     global pending_imp_results
 
@@ -254,7 +277,7 @@ def Tick():
     # respond("Time until the next attack: " + str(delay - (time()-previous_time)))
     if int(time() - previous_time) > delay:
         # spawn a new attacker if dead
-        if attackerDead:
+        if attacker_dead:
             retval = set_new_attacker(spawn_attacker()) + " "
             previous_time = time()
             # if the attacker is not an imp, go through the list of imp rewards and clear it.
@@ -268,7 +291,7 @@ def Tick():
             attack()
             previous_time = time()
 
-        if not attackerDead:
+        if not attacker_dead:
             delay = current_attacker.getBaseAttackDelay() * current_attacker.getAttackDelayMulti()
 
     return
@@ -447,7 +470,7 @@ def counter_attack(output):
                         # write the value back
                         file.write(str(campfire))
                     delay = kill_attacker()
-                    retval += " The attacker has been slain. You gain " + str(delay) + \
+                    retval += " The attacker has been slain. You gain " + str(int(delay*combo_counter)) + \
                               " more seconds until the next attack."
                     retval += ' Combo counter is at ' + str(combo_counter)
                     Parent.log('Moonrise', 'Combo counter is at ' + str(combo_counter))
@@ -465,15 +488,15 @@ def counter_attack(output):
 # sets the values of the new attacker
 def set_new_attacker(attacker):
     global current_attacker
-    global attackerDead
+    global attacker_dead
     current_attacker = attacker
-    attackerDead = False
+    attacker_dead = False
     return attacker.getSpawnMessage()
 
 
 def kill_attacker():
     # currentAttacker
-    global attackerDead
+    global attacker_dead
     global combo_counter
     global delay
 
@@ -481,7 +504,7 @@ def kill_attacker():
         combo_counter += 0.1
 
     reward = current_attacker.getReward() * combo_counter
-    attackerDead = True
+    attacker_dead = True
 
     return reward
 
