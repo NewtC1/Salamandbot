@@ -81,11 +81,7 @@ class Settings:
 
         else:  # set variables if no settings file
             self.Enabled = True
-            self.OnlyLive = False
-            self.Cost = 0
-            self.UseCD = False
-            self.Cooldown = 5
-            self.cd_response = "{0} the command is still on cooldown for {1} seconds!"
+            self.OnlyLive = True
 
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
@@ -127,6 +123,12 @@ def Init():
     current_attacker = Imp.Imp()
     # set start values
     previous_time = time()
+    # reset Soil's icons
+    Parent.SetOBSSourceRender("Soil Kill", True, "Capture", callback)
+    Parent.SetOBSSourceRender("Soil Ready", True, "Capture", callback)
+    # reset Bjorn's icons
+    Parent.SetOBSSourceRender("Bjorn Splinter", True, "Capture", callback)
+    Parent.SetOBSSourceRender("Bjorn Ready", True, "Capture", callback)
     # End of Init
     return
 
@@ -169,7 +171,9 @@ def Execute(data):
                 soil_kill_orders_remaining -= 1
                 soil_went_on_cooldown = time()
                 soil_on_cooldown = True
-                Parent.SetOBSSourceRender("TestSource 1", True, "PS4", callback)
+                Parent.SetOBSSourceRender("Soil Ready", False, "Capture", callback)
+                if soil_kill_orders_remaining == 0:
+                    Parent.SetOBSSourceRender("Soil Kill", False, "Capture", callback)
             else:
                 respond('"I think we can wait this one out a bit. Let me know when it actually breaks through." Soil '
                         'grins. "What\'s life without a bit of danger?"')
@@ -183,6 +187,7 @@ def Execute(data):
                         "Sap flows back into the rents in its bark, and the bark reseals.")
                 soil_went_on_cooldown = time()
                 soil_on_cooldown = True
+                Parent.SetOBSSourceRender("Soil Ready", False, "Capture", callback)
             else:
                 respond('"Nope. Can\'t do that too often. Making new life is one thing, but healing? '
                         'I\'m not made for that." Soil looks down at her hooves. "What *am* I made for?"')
@@ -197,6 +202,9 @@ def Execute(data):
                 bjorn_splinter_order_remaining -= 1
                 bjorn_on_cooldown = True
                 bjorn_went_on_cooldown = time()
+                Parent.SetOBSSourceRender("Bjorn Ready", False, "Capture", callback)
+                if bjorn_splinter_order_remaining == 0:
+                    Parent.SetOBSSourceRender("Bjorn Splinter", False, "Capture", callback)
             else:
                 respond('Bjorn shakes his shaggy head and goes back to sleep.')
 
@@ -209,6 +217,7 @@ def Execute(data):
                         'returns. "That should slow it down for a bit."')
                 bjorn_on_cooldown = True
                 bjorn_went_on_cooldown = time()
+                Parent.SetOBSSourceRender("Bjorn Ready", False, "Capture", callback)
             else:
                 respond('"Not yet." Bjorn hunkers under his blanket. "The big ones are still coming."')
     return
@@ -231,10 +240,12 @@ def Tick():
     if soil_on_cooldown:
         if soil_went_on_cooldown + soil_cooldown_duration < time():
             soil_on_cooldown = False
+            Parent.SetOBSSourceRender("Soil Ready", True, "Capture", callback)
 
     if bjorn_on_cooldown:
         if bjorn_went_on_cooldown + bjorn_cooldown_duration < time():
             bjorn_on_cooldown = False
+            Parent.SetOBSSourceRender("Bjorn Ready", True, "Capture", callback)
 
     # if only live is enable, do not run offline
     if MySet.OnlyLive and not Parent.IsLive():
@@ -321,6 +332,8 @@ def attack():
             bjorn_splinter_order_remaining = 3
             soil_on_cooldown = False
             bjorn_on_cooldown = False
+            Parent.SetOBSSourceRender("Soil Kill", True, "Capture", callback)
+            Parent.SetOBSSourceRender("Soil Ready", True, "Capture", callback)
 
         # open and save the new damage
         with open(shield_damage_dir, 'w', encoding='utf-8-sig') as file:
