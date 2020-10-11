@@ -357,6 +357,8 @@ def attack():
             bjorn_on_cooldown = False
             Parent.SetOBSSourceRender("Soil Kill", True, "Capture", callback)
             Parent.SetOBSSourceRender("Soil Ready", True, "Capture", callback)
+            Parent.SetOBSSourceRender("Bjorn Splinter", True, "Capture", callback)
+            Parent.SetOBSSourceRender("Bjorn Ready", True, "Capture", callback)
 
         # open and save the new damage
         with open(shield_damage_dir, 'w', encoding='utf-8-sig') as file:
