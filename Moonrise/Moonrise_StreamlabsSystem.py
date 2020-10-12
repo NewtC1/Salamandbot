@@ -590,6 +590,9 @@ def spawn_attacker():
             return Thunderjaw.Thunderjaw()
         else:
             return Ashvine.Ashvine()
+    else: # boss encounters
+        return Ashvine.Ashvine()
+
 
 
 def get_combo_counter():
