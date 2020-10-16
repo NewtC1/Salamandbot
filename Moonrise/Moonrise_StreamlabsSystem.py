@@ -12,7 +12,7 @@ from time import time
 from io import open
 
 sys.path.append(os.path.dirname(__file__))
-from MoonriseCreatures import Dragon, Beast, Colossus, Spider, Ashvine, Bunny, Thunderjaw, Imp
+from MoonriseCreatures import Dragon, Beast, Colossus, Spider, Ashvine, Bunny, Thunderjaw, Imp, SpiderQueen
 
 # ---------------------------------------
 # [Required] Script information
@@ -314,8 +314,6 @@ def attack():
     global bjorn_on_cooldown
     global bjorn_splinter_order_remaining
 
-    damage = int(current_attacker.getBaseAttackStrength() * current_attacker.getAttackStrengthMulti())
-
     retval = ''
     # open the current shield file
     with open(shield_directory, 'r', encoding='utf-8-sig') as file:
@@ -328,6 +326,7 @@ def attack():
             # read the value
             shielddamage = int(file.read())
         # increase the shield damage
+        damage = int(current_attacker.getBaseAttackStrength() * current_attacker.getAttackStrengthMulti())
         shielddamage += damage
         retval += current_attacker.getAttack()
 
@@ -472,7 +471,7 @@ def counter_attack(output):
                         # write the value back
                         file.write(str(campfire))
                     delay = kill_attacker()
-                    retval += " The attacker has been slain. You gain " + str(int(delay*combo_counter)) + \
+                    retval += " The attacker has been slain. You gain " + str(delay) + \
                               " more seconds until the next attack."
                     retval += ' Combo counter is at ' + str(combo_counter)
                     Parent.log('Moonrise', 'Combo counter is at ' + str(combo_counter))
@@ -505,7 +504,7 @@ def kill_attacker():
     if combo_counter < combo_counter_cap:
         combo_counter += 0.1
 
-    reward = current_attacker.getReward() * combo_counter
+    reward = current_attacker.getReward()
     attacker_dead = True
 
     return reward
@@ -591,7 +590,8 @@ def spawn_attacker():
         else:
             return Ashvine.Ashvine()
     else: # boss encounters
-        return Ashvine.Ashvine()
+        if roll < 100:
+            return Ashvine.Ashvine()
 
 
 
