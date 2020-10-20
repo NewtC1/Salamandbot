@@ -591,8 +591,10 @@ def spawn_attacker():
         else:
             return Ashvine.Ashvine()
     else: # boss encounters
-        if roll < 100:
+        if roll < 50:
             return Ashvine.Ashvine()
+        else:
+            return SpiderQueen.SpiderQueen()
 
 
 
