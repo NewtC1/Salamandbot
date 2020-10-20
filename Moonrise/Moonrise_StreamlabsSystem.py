@@ -480,6 +480,7 @@ def counter_attack(output):
                     if not str(current_attacker.__class__.__name__).lower() == "imp":
                         retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
                                   ' Burns race across the creature\'s body.'
+                        retval += current_attacker.UseSpecialAbility()
                     else:
                         retval += imp_response()
 

@@ -74,3 +74,6 @@ class DarkForestCreature:
 
     def SetIncResist(self, new_value):
         self.incineration_resist = new_value
+
+    def UseSpecialAbility(self):
+        return ""
