@@ -46,7 +46,7 @@ delay = 0
 soil_kill_orders_remaining = 1
 soil_on_cooldown = False
 soil_went_on_cooldown = 0
-soil_cooldown_duration = 600
+soil_cooldown_duration = 900
 
 # bjorn ability cooldowns
 bjorn_splinter_order_remaining = 3
