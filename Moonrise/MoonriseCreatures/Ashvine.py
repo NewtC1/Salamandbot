@@ -6,13 +6,10 @@ from DarkForestCreature import DarkForestCreature
 class Ashvine(DarkForestCreature):
 
     def __init__(self, delay=60, delayMulti=1.0, attack=30, attackMulti=1.0, health=60, reward=50,
-                 incineration_resist=5):
+                 incineration_resist=8):
         DarkForestCreature.__init__(self, delay, delayMulti, attack, attackMulti, health, reward, incineration_resist)
 
     def getAttack(self):
-        self.setHealth(int(self.getHealth()*1.3))
-        self.setReward(self.getReward() + 60)
-        self.setAttackStrengthMulti(self.getAttackStrengthMulti()+0.5)
         retval = 'Attaching itself to the trees, the Ashvine contracts, pulling at the shields from all sides.'
         return retval
 
@@ -29,3 +26,9 @@ class Ashvine(DarkForestCreature):
         retval = 'A column of smoke can be seen deep in the woods, even against the inky night sky. A purple glow' \
                  'answers the Campgrounds. A Cinder lurks in the darkness.'
         return retval
+
+    def UseSpecialAbility(self):
+        self.setHealth(int(self.getHealth()*2))
+        self.setReward(self.getReward() + 60)
+        self.setAttackStrengthMulti(self.getAttackStrengthMulti()+0.5)
+        return "The Ashvine covers more of the Forest around the fire."
