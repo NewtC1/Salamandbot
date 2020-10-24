@@ -436,6 +436,28 @@ def counter_attack(output):
                 imp_no_answer = 0
             return retval
 
+        def resolve_campfire_attack(retval):
+            if inc_resist < 1:
+                retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
+                campfire = get_campfire() - current_attacker.getHealth()
+                # open and save the new damage
+                with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
+                    # write the value back
+                    file.write(str(campfire))
+                delay = kill_attacker()
+                retval += " The attacker has been slain. You gain " + str(delay) + \
+                          " more seconds until the next attack."
+                retval += ' Combo counter is at ' + str(combo_counter)
+                Parent.log('Moonrise', 'Combo counter is at ' + str(combo_counter))
+            else:
+                current_attacker.SetIncResist(inc_resist - 1)
+                if not str(current_attacker.__class__.__name__).lower() == "imp":
+                    retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
+                              ' Burns race across the creature\'s body.'
+                    retval += current_attacker.UseSpecialAbility()
+                else:
+                    retval += imp_response()
+
         # The the salamander counter attacks if it has the logs to beat the current attacker.
         if shield_amount > 0:
 
@@ -457,8 +479,10 @@ def counter_attack(output):
                     if not str(current_attacker.__class__.__name__).lower() == "imp":
                         retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
                                   ' Burns race across the creature\'s body.'
+                        retval += current_attacker.UseSpecialAbility()
                     else:
                         retval += imp_response()
+
         # if there are no shields left, ignore the safety threshold
         else:
             if current_attacker.getHealth() < campfire:
