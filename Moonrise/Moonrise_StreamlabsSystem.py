@@ -436,77 +436,37 @@ def counter_attack(output):
                 imp_no_answer = 0
             return retval
 
-        def resolve_campfire_attack(retval):
+        def resolve_campfire_attack():
+            global delay
+            campfire_attack_retval = ""
             if inc_resist < 1:
-                retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
-                campfire = get_campfire() - current_attacker.getHealth()
+                campfire_attack_retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
+                set_campfire(get_campfire() - current_attacker.getHealth())
                 # open and save the new damage
-                with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
-                    # write the value back
-                    file.write(str(campfire))
                 delay = kill_attacker()
-                retval += " The attacker has been slain. You gain " + str(delay) + \
-                          " more seconds until the next attack."
-                retval += ' Combo counter is at ' + str(combo_counter)
+                campfire_attack_retval += " The attacker has been slain. You gain " + str(delay) + \
+                                          " more seconds until the next attack."
+                campfire_attack_retval += ' Combo counter is at ' + str(combo_counter)
                 Parent.log('Moonrise', 'Combo counter is at ' + str(combo_counter))
             else:
                 current_attacker.SetIncResist(inc_resist - 1)
                 if not str(current_attacker.__class__.__name__).lower() == "imp":
-                    retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
+                    campfire_attack_retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
                               ' Burns race across the creature\'s body.'
-                    retval += current_attacker.UseSpecialAbility()
+                    campfire_attack_retval += current_attacker.UseSpecialAbility()
                 else:
-                    retval += imp_response()
+                    campfire_attack_retval += imp_response()
+
+            return campfire_attack_retval
 
         # The the salamander counter attacks if it has the logs to beat the current attacker.
         if shield_amount > 0:
-
             if (current_attacker.getHealth() + campfireAttackSafetyThreshold) <= campfire:
-                if inc_resist < 1:
-                    # kill the attacker
-                    retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
-                    campfire = campfire - current_attacker.getHealth()
-                    # open and save the new damage
-                    with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
-                        # write the value back
-                        file.write(str(campfire))
-                    delay = kill_attacker()
-                    retval += " The attacker has been slain. You gain " + str(
-                        current_attacker.getReward()) + " more seconds until the next attack."
-                    retval += ' Combo counter is at ' + str(combo_counter)
-                else:
-                    current_attacker.SetIncResist(inc_resist - 1)
-                    if not str(current_attacker.__class__.__name__).lower() == "imp":
-                        retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
-                                  ' Burns race across the creature\'s body.'
-                        retval += current_attacker.UseSpecialAbility()
-                    else:
-                        retval += imp_response()
-
+                retval += resolve_campfire_attack()
         # if there are no shields left, ignore the safety threshold
         else:
             if current_attacker.getHealth() < campfire:
-                # kill the attacker
-                if inc_resist < 1:
-                    retval += ' Flame roars from the Campfire, incinerating the attacker instantly.'
-                    campfire = campfire - current_attacker.getHealth()
-                    # open and save the new damage
-                    with open(campfire_dir, 'w', encoding='utf-8-sig') as file:
-                        # write the value back
-                        file.write(str(campfire))
-                    delay = kill_attacker()
-                    retval += " The attacker has been slain. You gain " + str(delay) + \
-                              " more seconds until the next attack."
-                    retval += ' Combo counter is at ' + str(combo_counter)
-                    Parent.log('Moonrise', 'Combo counter is at ' + str(combo_counter))
-                else:
-                    current_attacker.SetIncResist(inc_resist - 1)
-                    if not str(current_attacker.__class__.__name__).lower() == "imp":
-                        retval += ' Vicious flames curl around the attacker, but fail to disuade it.' \
-                                  ' Burns race across the creature\'s body.'
-                        retval += current_attacker.UseSpecialAbility()
-                    else:
-                        retval += imp_response()
+                retval += resolve_campfire_attack()
 
     respond(retval)
 
