@@ -8,7 +8,6 @@ import operator
 import time
 import re
 import codecs
-import glob
 import shutil
 from io import open
 
@@ -92,11 +91,11 @@ def Init():
     # Globals
     global MySet
     global m_Active
-    global cooldownList
+    global cooldown_list
     global active_continuous_adds
     global vote_location
     active_continuous_adds = dict()
-    cooldownList = dict()
+    cooldown_list = dict()
     m_Active = False
     # Load in saved settings
     MySet = Settings(settingsFile)
@@ -124,6 +123,16 @@ def Init():
         with open(os.path.join(vote_location, 'active.txt'), 'w+') as active:
             active.write("Default")
 
+    # generates the vote.json from pre-existing votes at the start.
+    if not os.path.exists(os.path.join(vote_location, 'vote.json')):
+        os.system("python " + os.path.join(os.path.dirname(__file__), 'json_converter.py'))
+
+    Parent.Log("Vote Initialization","Creating backups vote list.")
+    if not os.path.exists("Backups"):
+        os.mkdir("Backups")
+    Parent.Log("Vote Initialization", "Backup created in: " + os.getcwd())
+
+    shutil.copyfile(os.path.join(vote_location, 'vote.json'), "Backups\\" + str(time.time()) + ".json")
 
     # End of Init
     return
@@ -131,10 +140,9 @@ def Init():
 
 def Execute(data):
     """Required Execute function"""
-    global cooldownList
-    retVal = ''
+    global cooldown_list
+    return_value = ''
     looped = False
-    addAmount = 0
 
     # does nothing if the stream isn't live with the "OnlyLive" setting ticked
     if MySet.OnlyLive and (Parent.IsLive() is False):
@@ -167,17 +175,18 @@ def Execute(data):
 
             data_input = ' '.join(data_input)
             game = data_input
-        with open(os.path.join(get_active_vote_location(), game+'.txt'), 'w+') as new_option:
-            # write the last value entered in
-            try:
-                new_option.write(str(vote_value))
-            except IOError as e:
-                Parent.SendStreamMessage(str(e))
 
-        if os.path.exists(os.path.join(get_active_vote_location(), game+'.txt')):
+        vote_data = get_vote_data()
+        vote_data["Profiles"][get_active_profile()][game] = {"vote value": vote_value,
+                                                             "votes list": {},
+                                                             "contributor": "",
+                                                             "length of game": 0,
+                                                             "last added": time.time()}
+        vote_data = update_vote_data(vote_data)
+        if game in vote_data["Profiles"][get_active_profile()].keys():
             respond(data, 'Successfully created the option %s!' % game)
         else:
-            respond(data, "Could not find the file: " + get_active_vote_location()+game+'.txt')
+            respond(data, "Something went wrong. Let Newt know!")
 
     # deletevoteoption
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteoption":
@@ -187,99 +196,95 @@ def Execute(data):
         data_input = data_input[1:]
         data_input = ' '.join(data_input)
         game = data_input
-        try:
-            os.remove(os.path.join(get_active_vote_location(), game+".txt"))
-        except IOError as e:
-            Parent.SendStreamMessage("That vote doesn't exist.")
-        except WindowsError as e:
-            Parent.SendStreamMessage(str(e))
 
-        if not os.path.exists(os.path.join(get_active_vote_location(), game+'.txt')):
+        vote_data = get_vote_data()
+        del vote_data["Profiles"][get_active_profile()][game]
+        update_vote_data(vote_data)
+        if game in vote_data["Profiles"][get_active_profile()].keys():
             respond(data, 'Successfully deleted the option %s!' % game)
         else:
             respond(data, 'Something went wrong. Let Newt know!')
 
     # setvoteprofile
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!setvoteprofile":
-        set_active_vote_location(data.GetParam(1).lower())
-        retVal += "The campfires shift and blur. A new set of campfires fades into existence."
-        respond(data, retVal)
+        set_active_vote_profile(data.GetParam(1))
+        return_value += "The campfires shift and blur. A new set of campfires fades into existence."
+        respond(data, return_value)
 
     # deletevoteprofile
     if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteprofile":
         delete_vote_location(data.GetParam(1).lower())
-        retVal += "The old campfire blurs and disappears in front of you. It is no more."
-        respond(data, retVal)
+        return_value += "The old campfire blurs and disappears in front of you. It is no more."
+        respond(data, return_value)
 
     # showvoteprofile
     if data.GetParam(0).lower() == "!showvoteprofile":
-        vote_dir = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
-        for each in os.listdir(vote_dir):
-            if each != "active.txt":
-                retVal += each + ', '
+        vote_data = get_vote_data()
+        for profile in vote_data["Profiles"].keys():
+            return_value += profile + ', '
 
-        retVal = retVal[:-2]
-        respond(data, retVal)
+        return_value = return_value[:-2]
+        respond(data, return_value)
 
     # !checkoptions
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.CheckOptionsCommand:
-        checkoptions(data)
+        check_options(data)
         return
 
-     # vote
+    # vote
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.Command.lower():
         if data.GetParamCount() < 2:
-            retVal += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of %ss>' \
+            return_value += 'Missing the correct number of parameters. Correct usage is !vote <game> <number of %ss>' \
                       % MySet.PointName
-            respond(data, retVal)
+            respond(data, return_value)
             return
 
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
             if data.UserName.lower() not in active_continuous_adds.keys():
-                retVal = 'There is nothing to stop adding to.'
-                Parent.SendStreamMessage(retVal)
+                return_value = 'There is nothing to stop adding to.'
+                Parent.SendStreamMessage(return_value)
                 return
             else:
                 del active_continuous_adds[data.User]
-                retVal = 'You have been removed from the continuous add list.'
-                Parent.SendStreamMessage(retVal)
+                return_value = 'You have been removed from the continuous add list.'
+                Parent.SendStreamMessage(return_value)
                 return
 
-        if data.UserName.lower() not in cooldownList.keys() or \
-                (data.GetParam(2).lower() == 'stop' or data.GetParam(2).lower() == 'all'):
+        # getting game name
+        data_input = data.Message
+        data_input = data_input.split(" ")
+        data_input = data_input[1:-1]
+        data_input = ' '.join(data_input)
+        game = data_input
 
-            # getting game name
-            data_input = data.Message
-            data_input = data_input.split(" ")
-            data_input = data_input[1:-1]
-            data_input = ' '.join(data_input)
-            game = data_input
+        # gets the amounts
+        data_input = data.Message
+        data_input = data_input.split()
+        amount = data_input[len(data_input)-1].lower()
 
-            # gets the amount
-            data_input = data.Message
-            data_input = data_input.split()
-            amount = data_input[len(data_input)-1].lower()
+        if data.UserName.lower() not in cooldown_list.keys() or \
+                (amount.lower() == 'stop' or amount.lower() == 'all'):
 
             # security checking for data values
             target = security_check(game)
 
             # check if the file exists
-            if not os.path.exists(os.path.join(get_active_vote_location(), target + '.txt')):
-                retVal += 'That %s does not exist yet. Recommend it to me instead and I may add it. '%MySet.ResultName
-                respond(data, retVal)
+            if not vote_exists(target):
+                return_value += 'That %s does not exist yet. Recommend it to me instead and I may add it. '%MySet.ResultName
+                respond(data, return_value)
                 return
 
             # check if the user is 5attempting to do a !vote <name> all
-            if amount.lower() == 'all' and MySet.continuousVoting:
+            if amount.lower() == 'all':
+                Parent.Log("Vote all", "Adding all logs.")
                 new_data = (data.User.lower(), target, amount.lower())
                 # only add anything if the user isn't on the cooldown list.
-                if data.UserName.lower() not in cooldownList.keys():
-                    addAmount = min(Parent.GetPoints(data.User), MySet.voteMaximum)
+                if data.UserName.lower() not in cooldown_list.keys():
+                    add_amount = min(Parent.GetPoints(data.User), MySet.voteMaximum)
                     if data.User not in active_continuous_adds:
                         active_continuous_adds[data.User.lower()] = new_data
-                        retVal += 'You have been added to the continuous add list and are now adding ' + \
+                        return_value += 'You have been added to the continuous add list and are now adding ' + \
                                    MySet.PointName + 's until you run out. '
-                        # Parent.SendStreamMessage(response)
                 else:
                     # if the user isn't in the add list, add it and add the data
                     if data.User not in active_continuous_adds:
@@ -288,7 +293,6 @@ def Execute(data):
                                    MySet.PointName + 's until you run out. '
                         Parent.SendStreamMessage(response)
                         return
-                    #
                     else:
                         active_continuous_adds[data.User.lower()] = new_data
                         response = 'You are already in the the active list. Type "!vote stop" at any time to stop adding. '
@@ -298,30 +302,30 @@ def Execute(data):
             # check if the user is attempting to stop adding logs automatically
             elif amount == 'stop' and MySet.continuousVoting:
                 if data.User in active_continuous_adds:
-                    retVal += 'You have been removed from the continuous add list for '+str(target)+' '+str(data.User)
-                    Parent.SendStreamWhisper(data.User, retVal)
+                    return_value += 'You have been removed from the continuous add list for '+str(target)+' '+str(data.User)
+                    Parent.SendStreamWhisper(data.User, return_value)
                     del active_continuous_adds[data.User]
                     return
                 else:
-                    retVal += 'You aren\'t on the continuous add list.'
-                    respond(data, retVal)
+                    return_value += 'You aren\'t on the continuous add list.'
+                    respond(data, return_value)
                     return
 
             # add amount
             else:
                 # verify the amount to add is actually an integer
                 try:
-                    addAmount = int(amount)
+                    add_amount = int(amount)
                 except ValueError as ve:
-                    retVal += 'That isn\'t an integer. Please vote using an integer.'
-                    respond(data, retVal)
+                    return_value += 'That isn\'t an integer. Please vote using an integer.'
+                    respond(data, return_value)
                     return
 
-            # check the amount is not higher than the user can add.
-            if addAmount > Parent.GetPoints(data.User):
-                retVal += 'Your %s pales in comparison to the amount you wish to add, %s. You only have %s. Wait to gather more.'\
+             # check the amount is not higher than the user can add.
+            if add_amount > Parent.GetPoints(data.User):
+                return_value += 'Your %s pales in comparison to the amount you wish to add, %s. You only have %s. Wait to gather more.'\
                           %(MySet.ResultName, data.User, str(Parent.GetPoints(data.User)))
-                respond(data, retVal)
+                respond(data, return_value)
 
                 # if they're in the auto add list, remove them from that list
                 if data.User in active_continuous_adds:
@@ -329,18 +333,18 @@ def Execute(data):
                 return
 
             # if users can add all the time, then ignore cooldowns and just add it
-            if not MySet.AntiSnipe and addAmount >= 0:
+            if not MySet.AntiSnipe and add_amount >= 0:
                 # get the number of points afterwards
-                result = add_to_campfire(data.User, target, addAmount)
-                retVal += "%s added %i to %s's %s. There are now %i %ss in the %s. " % (
-                data.User, addAmount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
-                respond(data, retVal)
+                result = add_to_campfire(data.User, target, add_amount)
+                return_value += "%s added %i to %s's %s. There are now %i %ss in the %s. " % (
+                data.User, add_amount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
+                respond(data, return_value)
                 return
 
             # If the user tries to add more than the set maximum, change the amount to add to be that maximum.
-            if addAmount > int(MySet.voteMaximum):
+            if add_amount > int(MySet.voteMaximum):
                 # get the number of seconds this will take to finish
-                seconds_to_completion = int(((addAmount-float(MySet.voteMaximum))/float(MySet.voteMaximum))*int(MySet.cooldownTime))
+                seconds_to_completion = int(((add_amount-float(MySet.voteMaximum))/float(MySet.voteMaximum))*int(MySet.cooldownTime))
                 minutes_to_completion = 0
                 hours_to_completion = 0
                 if seconds_to_completion > 60:
@@ -350,80 +354,80 @@ def Execute(data):
                     hours_to_completion = minutes_to_completion/60
                     minutes_to_completion = minutes_to_completion%60
 
-                retVal += 'Currently the maximum number of %ss is %s. Removing this amount from your pool. '\
+                return_value += 'Currently the maximum number of %ss is %s. Removing this amount from your pool. '\
                           %(MySet.PointName, MySet.voteMaximum)
 
-                addAmount = int(MySet.voteMaximum)
+                add_amount = int(MySet.voteMaximum)
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
                 if data.User not in active_continuous_adds:
                     # store the new data as a tuple for another function to deal with.
-                    new_data = (data.User.lower(), target, int(amount) - addAmount)
+                    new_data = (data.User.lower(), target, int(amount) - add_amount)
                     active_continuous_adds[data.User.lower()] = new_data
                     # send users a message to inform them how long logs will add for.
                     if hours_to_completion != 0:
-                        retVal += ("You have been added to the continuous add list. " +
+                        return_value += ("You have been added to the continuous add list. " +
                                    MySet.PointName.capitalize() + ' will continue to add for ' +
                                    str(hours_to_completion) + ' hours and ' +
                                    str(minutes_to_completion) + ' minutes and ' +
                                    str(seconds_to_completion) +
                                    ' seconds. Type "!vote stop" to stop voting on this choice. ')
                     elif minutes_to_completion != 0:
-                        retVal += ("You have been added to the continuous add list. " +
+                        return_value += ("You have been added to the continuous add list. " +
                                    MySet.PointName.capitalize() + 's will continue to add for ' +
                                    str(minutes_to_completion) + ' minutes and ' +
                                    str(seconds_to_completion) +
                                    ' seconds. Type "!vote stop" to stop voting on this choice. ')
                     else:
-                        retVal += ("You have been added to the continuous add list. " +
+                        return_value += ("You have been added to the continuous add list. " +
                                    MySet.PointName.capitalize() + 's will continue to add for ' +
                                    str(seconds_to_completion) +
                                    ' seconds. Type "!vote stop" to stop voting on this choice. ')
             # check the amount is above 0.
-            if addAmount <= 0:
+            if add_amount <= 0:
                 # if they're in the auto add list, remove them from that list
                 if data.User in active_continuous_adds:
                     del active_continuous_adds[data.User]
-                    retVal += data.User + ' if you got this message, you ran out of ' + MySet.PointName + \
+                    return_value += data.User + ' if you got this message, you ran out of ' + MySet.PointName + \
                               's and have been removed from auto add.'
                 else:
-                    retVal = '%s, %i is less than or equal to 0. Please offer at least one %ss.' \
-                             % (data.User, addAmount, MySet.PointName)
+                    return_value = '%s, %i is less than or equal to 0. Please offer at least one %ss.' \
+                             % (data.User, add_amount, MySet.PointName)
 
-                respond(data, retVal)
+                respond(data, return_value)
                 return
 
             # add it to the campfire
-            result = add_to_campfire(data.User, target, addAmount)
+            result = add_to_campfire(data.User, target, add_amount)
 
             # output the result to the user
-            retVal += "%s added %i to %s's %s. There are now %i %ss in the %s. "\
-                      %(data.User, addAmount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
+            return_value += "%s added %i to %s's %s. There are now %i %ss in the %s. "\
+                      %(data.User, add_amount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
 
             cooldown = MySet.cooldownTime
             # set the cooldown and save it
             if MySet.dynamicCooldown:
-                cooldown = addAmount * (float(MySet.cooldownTime)/float(MySet.voteMaximum))
+                cooldown = add_amount * (float(MySet.cooldownTime)/float(MySet.voteMaximum))
             # add a user to a dictionary when they use the command.
-            cooldownList[data.UserName.lower()] = time.time(), cooldown
+            cooldown_list[data.UserName.lower()] = time.time(), cooldown
             
         else:
             # Output the cooldown message
-            if data.UserName.lower() in cooldownList.keys():
+            if data.UserName.lower() in cooldown_list.keys():
                 seconds_to_wait = get_cooldown(data.User)
-                retVal += "You have to wait " + str(int(seconds_to_wait)) + ' more seconds before you can add ' + \
+                return_value += "You have to wait " + str(int(seconds_to_wait)) + ' more seconds before you can add ' + \
                           MySet.PointName + 's again.'
-                respond(data, retVal)
+                respond(data, return_value)
                 return
 
         # sends the final message
         if not looped and not MySet.SilentAdds:
-            respond(data, retVal)
+            respond(data, return_value)
 
     # debug section
     if data.IsChatMessage() and data.GetParam(0).lower() == '!debug':
         if data.GetParam(1) == 'get_cooldown' and MySet.get_cooldown == True:
-            retVal = get_cooldown(data.GetParam(2))
-            Parent.SendStreamMessage(str(retVal))
+            return_value = get_cooldown(data.GetParam(2))
+            Parent.SendStreamMessage(str(return_value))
         # if data.GetParam(1) == 'get_remaining' and MySet.get_remaining == True:
         #     retVal =
 
@@ -433,14 +437,14 @@ def Execute(data):
 def Tick():
     """Required tick function"""
     removals = []
-    global cooldownList
+    global cooldown_list
     # if you're on the cooldown list
-    for x in cooldownList:
+    for x in cooldown_list:
         # if dynamic cooldown is enabled
         if MySet.dynamicCooldown:
-            if time.time() - cooldownList[x][1] > cooldownList[x][0]:
+            if time.time() - cooldown_list[x][1] > cooldown_list[x][0]:
                 removals.append(x)
-        elif time.time() - float(MySet.cooldownTime) > cooldownList[x][0]:
+        elif time.time() - float(MySet.cooldownTime) > cooldown_list[x][0]:
             removals.append(x)
     
     # remove the people who have had their cooldowns time out.
@@ -448,64 +452,56 @@ def Tick():
         # if it's in the list of continues adds, resubmit the command that started it.
 
         if each.lower() in active_continuous_adds:
-            del cooldownList[each]
+            del cooldown_list[each]
             # if the users are still present in the viewer list, continue removing logs.
             if each.lower() in set(Parent.GetViewerList()):
                 if active_continuous_adds[each.lower()][2] > 0:
-                    addUntilDone(active_continuous_adds[each.lower()][0],
-                                 active_continuous_adds[each.lower()][1],
-                                 active_continuous_adds[each.lower()][2])
+                    add_until_done(active_continuous_adds[each.lower()][0], active_continuous_adds[each.lower()][1],
+                                   active_continuous_adds[each.lower()][2])
 
             # if the user isn't present
             else:
                 Parent.SendStreamWhisper(each.lower(),
-                                        'You have been removed from the continuous add list due to leaving the stream.')
+                                         'You have been removed from the continuous add list due to leaving '
+                                         'the stream.')
             # del activeContinuousAdds[each]
         else:
-            del cooldownList[each]
+            del cooldown_list[each]
 
     return
 
-def checkoptions(data):
+def check_options(data):
     """Required Execute function"""
-    retVal = ''
-    files = {}
+    return_value = ''
+    votes = get_vote_data()
+    active = get_active_profile()
+    options = {}
 
-    if not get_active_vote_location():
-        Parent.SendStreamMessage("Please create the Vote directory.")
+    # build a dictionary of values out of the options
+    for option in votes["Profiles"][active]:
+        options[option] = get_vote_option_value(option)
+
+    if not len(options.keys()):
+        respond(data, "There's nothing in this profile. Add options with !addvoteoption.")
         return
 
-    try:
-        if len(os.listdir(get_active_vote_location())):
-            for filename in os.listdir(get_active_vote_location()):
-                #Load in all the file information we need
-                with open(os.path.join(get_active_vote_location(), filename), 'r', encoding='utf-8-sig') as f:
-                    fileValue = int(f.read())
-
-                    changed_name = filename.split('\\', 1)[-1].split('.')[0]
-                    files[changed_name] = fileValue
-        else:
-            respond(data, "There's nothing in this profile. Add options with !addvoteoption.")
-    except WindowsError as e:
-        Parent.SendStreamMessage(str(e))
-
     # sort by the keys https://stackoverflow.com/questions/613183/how-do-i-sort-a-dictionary-by-value
-    sorted_files = sorted(files.items(), key=operator.itemgetter(1))
+    sorted_files = sorted(options.items(), key=operator.itemgetter(1))
 
     # add all sorted values to retval and return.
     for x, y in reversed(sorted_files):
-        retVal += str(x)
+        return_value += str(x)
 
         # if the value is higher than 0, add the value
-        if (files[x] > 0):
-            retVal += '('+str(y)+' '+MySet.PointName+')'
+        if options[x] > 0:
+            return_value += '('+str(y)+' '+MySet.PointName+')'
 
-        retVal += ', '
+        return_value += ', '
 
-    retVal = retVal[:-2]
+    return_value = return_value[:-2]
 
-    #sends the final message
-    respond(data, retVal)
+    # sends the final message
+    respond(data, return_value)
 
     return
 
@@ -538,7 +534,7 @@ def security_check(input):
 
 
 # helper function that seperates values from the data Datatype
-def addUntilDone(user, targetgame, amount):
+def add_until_done(user, targetgame, amount):
 
     global active_continuous_adds
     # if the amount left is less than the voteMaximum, vote with the rest of it and remove the user from the list.
@@ -567,9 +563,9 @@ def addUntilDone(user, targetgame, amount):
             cooldown = MySet.cooldownTime
             # set the cooldown and save it
             if MySet.dynamicCooldown:
-                cooldown = add_amount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
+                cooldown = add_amount * (float(MySet.cooldownTime)/float(MySet.voteMaximum))
             # add a user to a dictionary when they use the command.
-            cooldownList[user.lower()] = time.time(), cooldown
+            cooldown_list[user.lower()] = time.time(), cooldown
     elif type(amount) == str:   # This is the ALL vote option
         add_amount = Parent.GetPoints(user)
         if int(MySet.voteMaximum) < add_amount:
@@ -588,28 +584,39 @@ def addUntilDone(user, targetgame, amount):
         cooldown = MySet.cooldownTime
         # set the cooldown and save it
         if MySet.dynamicCooldown:
-            cooldown = add_amount * (int(MySet.cooldownTime) / int(MySet.voteMaximum))
+            cooldown = add_amount * (float(MySet.cooldownTime)/float(MySet.voteMaximum))
         # add a user to a dictionary when they use the command.
 
         if not add_amount == 0:
-            cooldownList[user.lower()] = time.time(), cooldown
+            cooldown_list[user.lower()] = time.time(), cooldown
         else:
             Parent.SendStreamMessage(user + " you have run out of logs!")
 
 
 def add_to_campfire(user, targetgame, amount):
-    target_dir = os.path.join(get_active_vote_location(), targetgame + '.txt')
-    with open(target_dir, 'r', encoding='utf-8-sig') as vote:
-        voteData = int(vote.read().decode('utf-8-sig'))
-    voteData += amount
-    with open(target_dir, 'w') as vote:
-        vote.write(str(voteData))
+    vote_data = get_vote_data()
+    Parent.Log("Add_To_Campfire", "Loading the following data: "+ str(vote_data))
+    vote_data["Profiles"][get_active_profile()][targetgame]["vote value"] += int(amount)
+    Parent.Log("Add_To_Campfire", "User " + user + " attempting to add " + str(amount) + " to " + targetgame)
+
+    # adds a user to the tracking information for that vote if they haven't already voted on that game
+    if user in vote_data["Profiles"][get_active_profile()][targetgame]["votes list"].keys():
+        vote_data["Profiles"][get_active_profile()][targetgame]["votes list"][user] += int(amount)
+    else:
+        Parent.Log("Add_To_Campfire", "Adding a new user to the votes list.")
+        vote_data["Profiles"][get_active_profile()][targetgame]["votes list"][user] = int(amount)
+    vote_data["Profiles"][get_active_profile()][targetgame]["last added"] = time.time()
+    Parent.Log("Add_To_Campfire", "vote_data dictionary updated.")
+    update_vote_data(vote_data)
     Parent.RemovePoints(user, user, amount)
 
-    if (MySet.christmas == True):
+    Parent.Log("Add_To_Campfire", "Attempting to update christmas settings.")
+    if MySet.christmas:
         add_to_givers(user, amount)
+    Parent.Log("Add_To_Campfire", "Updated Christmas settings successfully.")
 
-    return voteData
+    Parent.Log("Add_To_Campfire", "Add completed successfully.")
+    return get_vote_option_value(targetgame)
 
 
 def add_to_givers(user, amount):
@@ -624,57 +631,95 @@ def add_to_givers(user, amount):
         vote.write(str(voteData))
 
 
-def get_active_vote_location():
-    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
-    with open(os.path.join(vote_location,"active.txt"), 'r') as f:
-        ret_val = os.path.join(vote_location, f.read())
-    return ret_val
+def get_active_profile():
+    global vote_location
+    data = get_vote_data()
+    return data["Active Profile"]
 
 
-def set_active_vote_location(profile):
+def set_active_vote_profile(profile):
     """Sets the active vote profile by changing the text file in the vote directory. Makes a new vote profile
     if it doesn't exist yet."""
-    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
-    with open(os.path.join(vote_location, "active.txt"), 'w+') as f:
-        f.write(profile)
+    global vote_location
+    data = get_vote_data()
 
     # if the new location doesn't exist, create it
-    new_location = os.path.join(vote_location, profile)
-    if not os.path.exists(new_location):
-        os.mkdir(new_location)
+    data["Active Profile"] = profile
+    if profile not in data["Profiles"].keys():
+        data["Profiles"][profile] = {}
+
+    update_vote_data(data)
 
 
 def delete_vote_location(profile):
     """Deletes the target vote profile completely."""
-    vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
-    target_location = os.path.join(vote_location, profile)
+    global vote_location
+    target_location = profile
+    data = get_vote_data()
+    active = get_active_profile()
 
     # clear the vote location if it's currently active
-    if get_active_vote_location().split("\\")[-1] == profile.lower():
-        with open(os.path.join(vote_location, "active.txt"), 'w+') as f:
-            f.write("default")
+    if active == profile:
+        data["Active Profile"] = "Default"
 
-    try:
-        for option in os.listdir(target_location):
-            os.remove(os.path.join(target_location, option))
-    except WindowsError as e:
-        Parent.SendStreamMessage(str(e))
+    # delete the profile
+    del data["Profiles"][profile]
 
-    os.rmdir(target_location)
+    update_vote_data(data)
 
 
 def get_cooldown(user):
-    global cooldownList
+    global cooldown_list
 
     # if the user isn't on cooldown, return 0
-    if user.lower() not in cooldownList.keys():
+    if user.lower() not in cooldown_list.keys():
         return 0.0
 
     # how long has it been since we voted?
-    time_since_vote = (time.time() - cooldownList[user.lower()][0])
+    time_since_vote = (time.time() - cooldown_list[user.lower()][0])
 
     # returns how much time is left
     if MySet.dynamicCooldown:
-        return cooldownList[user.lower()][1] - time_since_vote
+        return cooldown_list[user.lower()][1] - time_since_vote
     else:
         return float(MySet.cooldownTime) - time_since_vote
+
+
+def get_vote_data():
+    with codecs.open(os.path.join(vote_location, "vote.json"), encoding='utf-8-sig', mode='r') as f:
+        vote_data = json.load(f, encoding='utf-8-sig')
+
+    return vote_data
+
+
+def vote_exists(target):
+    data = get_vote_data()
+    if target in data["Profiles"][get_active_profile()].keys():
+        return True
+    else:
+        return False
+
+
+def update_vote_data(data):
+    Parent.Log("update_vote_data", "Adding the following Data structure: " + str(data))
+    with codecs.open(os.path.join(vote_location, "vote.json"), mode='w+') as f:
+        output = json.dumps(data, f, indent=2, encoding='utf-8-sig')
+        f.write(output)
+    Parent.Log("update_vote_data", "Updated the file successfully.")
+
+    return output
+
+
+def add_vote_option(option, amount):
+    data = get_vote_data()
+
+
+def get_vote_option_value(option):
+    global vote_location
+    option_value = 0
+    data = get_vote_data()
+    active = data["Active Profile"]
+    if option in data["Profiles"][active].keys():
+        option_value = data["Profiles"][active][option]["vote value"]
+
+    return option_value
