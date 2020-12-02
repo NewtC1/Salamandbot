@@ -494,7 +494,7 @@ def check_options(data):
 
         # if the value is higher than 0, add the value
         if options[x] > 0:
-            return_value += '('+str(y)+' '+MySet.PointName+')'
+            return_value += '('+str(y)+' '+MySet.PointName+'s)'
 
         return_value += ', '
 
