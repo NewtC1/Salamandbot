@@ -26,7 +26,6 @@ Description = "Basic Template, use to create other scripts"
 # Variables
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
-counter_file = os.path.join(os.path.dirname(__file__), "counter.json")
 
 
 # ---------------------------------------
