@@ -6,15 +6,16 @@ for everyone in chat for x seconds"""
 import json
 import os, os.path
 import codecs
+from time import time
 
 # ---------------------------------------
 # [Required] Script information
 # ---------------------------------------
-ScriptName = "Template"
+ScriptName = "Rimeheart"
 Website = "https://www.twitch.tv/newtc"
 Creator = "Newt"
 Version = "1.0.0.0"
-Description = "Basic Template, use to create other scripts"
+Description = "Enables the Rimeheart event, which runs constant giveaways."
 
 # ---------------------------------------
 # Versions
@@ -26,6 +27,8 @@ Description = "Basic Template, use to create other scripts"
 # Variables
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
+keys_file = os.path.join(os.path.dirname(__file__), "keys.txt")
+current_giveaway = os.path.join(os.path.dirname(__file__), "giveaway.json")
 
 
 # ---------------------------------------
@@ -77,20 +80,68 @@ def Init():
     """Required Init function, run when the bot loads the script."""
     # Globals
     global MySet
+    global start_time
+    global time_between_raffles
+    global giveaway
+
     # Load in saved settings
     MySet = Settings(settingsFile)
+
+    # Define global variables
+    start_time = time()
+    time_between_raffles = 1800  # default to 30 minutes
+
+    if not os.path.exists(current_giveaway):
+        giveaway = select_new_game()
+        with open(current_giveaway, "w+") as f:
+            json.dump(giveaway, f, encoding='utf-8-sig')
+    else:
+        with open(current_giveaway, "r") as f:
+            giveaway = json.load(f)
 
     # End of Init
     return
 
 
 def Execute(data):
+    global giveaway
+    global MySet
     """Required Execute function, run whenever a user says anything."""
+
+    if not Parent.IsLive() and MySet.OnlyLive:
+        return
+
+    if data.GetParam(0) == "!raffle":
+        if data.GetParamCount() < 2:
+            join_raffle(data.User)
+        else:
+            try:
+               join_raffle(data.User, int(data.GetParam(1)))
+            except ValueError as e:
+                Parent.SendStreamMessage("Sorry, but " + data.GetParam(1) + " is not an integer.")
+
+    if data.GetParam(0) == "!rafflegame":
+        game = giveaway["game"]
+        Parent.SendStreamMessage("The current raffle target is: " + game + ". !raffle to enter.")
+
+    if Parent.HasPermission(data.User, "Caster", ""):
+        if data.GetParam(0) == "!skip":
+            select_new_game()
+
+        if data.GetParam(0) == "!roll":
+            select_raffle_winner()
+
     return
 
 
 def Tick():
     """Required tick function, run whenever possible."""
+    global start_time
+
+    if time() - start_time > time_between_raffles:
+        select_raffle_winner()
+        select_new_game()
+
     return
 
 
@@ -111,3 +162,93 @@ def respond(data, output):
             Parent.SendStreamWhisper(data.UserName, retVal)
         else:
             Parent.SendStreamMessage(str(retVal))
+
+
+def select_new_game():
+    """ Returns a new dictionary with the game information. """
+    global giveaway
+
+    Parent.SendStreamMessage(
+        "Selecting another game for raffle. !raffle to enter, 100 logs each. Raffles last 30 minutes.")
+
+    # select the next key
+    with open(keys_file, "r") as f:
+        file_data = f.readlines()
+
+        # get the first line
+        line = file_data[0].strip("\n")
+
+        # get the game name and key
+        game = " ".join(line.split(" ")[0:-1])
+        key = line.split(" ")[-1]
+
+    # delete the key that was chosen
+    with open(keys_file, "w+") as f:
+        count = 0
+        # skip the first line, write the rest.
+        for line in file_data:
+            if count == 0:
+                count += 1
+                continue
+
+            f.write(line)
+
+    giveaway = {
+        "game": game,
+        "key": key,
+        "raffle": {}
+    }
+
+    Parent.SendStreamMessage("The next game up for raffle is " + game)
+    update_json()
+
+    return giveaway
+
+
+def join_raffle(user, amount=1):
+    global giveaway
+
+    if user.lower() in giveaway["raffle"].keys():
+        giveaway["raffle"][user.lower()] += amount
+        Parent.RemovePoints(user, user, amount*100)
+        Parent.SendStreamMessage(user + " just bought " + str(amount) + " raffle tickets.")
+        update_json()
+        return 1
+    else:
+        giveaway["raffle"][user.lower()] = amount
+        Parent.RemovePoints(user, user, amount*100)
+        Parent.SendStreamMessage(user + " just bought " + str(amount) + " raffle tickets.")
+        update_json()
+        return 2
+
+
+def select_raffle_winner():
+    global giveaway
+
+    # generates the list by adding the user to the raffle once per each of their tickets.
+    raffle = []
+    for user in giveaway["raffle"].keys():
+        for i in range(giveaway["raffle"][user]):
+            raffle.append(user)
+
+    Parent.Log("Rimeheart", str(raffle))
+
+    if raffle:
+        winner = raffle[Parent.GetRandom(0, len(raffle))]
+
+        Parent.SendStreamMessage("Congratulations %s! You won a copy of %s! Check your whispers in a "
+                                 "few moments for the key." % (winner, giveaway["game"]))
+        Parent.SendStreamWhisper(winner, "Here is your key for %s: %s" % (giveaway["game"], giveaway["key"]))
+        return winner
+    else:
+        Parent.SendStreamMessage("No entries for %s? We'll return it to the list." % giveaway["game"])
+        with open(keys_file, "a+") as f:
+            f.write("\n" + giveaway["game"] + " " + giveaway["key"])
+
+        return None
+
+
+def update_json():
+    global giveaway
+    with open(current_giveaway, "w+") as f:
+        json.dump(giveaway, f)

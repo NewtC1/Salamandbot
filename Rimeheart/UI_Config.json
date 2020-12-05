@@ -1,3 +1,10 @@
 {
-  "output_file": "settings.json"
+  "output_file": "settings.json",
+  "OnlyLive": {
+      "type": "checkbox",
+      "value": false,
+      "label": "Only play while live?",
+      "tooltip": "Toggles only-live functionality",
+      "group": "General"
+  }
 }
