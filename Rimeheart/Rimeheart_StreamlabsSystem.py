@@ -137,7 +137,11 @@ def Execute(data):
 def Tick():
     """Required tick function, run whenever possible."""
     global start_time
+    global MySet
 
+    if MySet.OnlyLive and not Parent.IsLive:
+        return
+    
     if time() - start_time > time_between_raffles:
         select_raffle_winner()
         select_new_game()
