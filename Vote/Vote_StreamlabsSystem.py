@@ -620,15 +620,18 @@ def add_to_campfire(user, targetgame, amount):
 
 
 def add_to_givers(user, amount):
-    giverLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Givers/' + user)
-
-    if not (os.path.exists(giverLocation + '.txt')):
-        return
-    with open(giverLocation + '.txt', 'r', encoding='utf-8-sig') as vote:
-        voteData = int(vote.read().decode('utf-8-sig'))
-    voteData += amount
-    with open(giverLocation + '.txt', 'w') as vote:
-        vote.write(str(voteData))
+    giverLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Givers/', user.lower()+".txt")
+    Parent.Log("add_to_givers", "Giver exists: " + str(os.path.exists(giverLocation)))
+    Parent.Log("add_to_givers", "Giver path: " + str(giverLocation))
+    if os.path.exists(giverLocation):
+        with open(giverLocation, 'r') as vote:
+            voteData = int(vote.read().decode('utf-8-sig'))
+        voteData += amount
+        with open(giverLocation, 'w+') as vote:
+            vote.write(str(voteData))
+    else:
+        with open(giverLocation, 'w+') as vote:
+            vote.write(str(amount))
 
 
 def get_active_profile():
