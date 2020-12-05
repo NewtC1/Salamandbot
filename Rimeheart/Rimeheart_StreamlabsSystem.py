@@ -141,7 +141,7 @@ def Tick():
 
     if MySet.OnlyLive and not Parent.IsLive:
         return
-    
+
     if time() - start_time > time_between_raffles:
         select_raffle_winner()
         select_new_game()
@@ -215,12 +215,14 @@ def join_raffle(user, amount=1):
     if user.lower() in giveaway["raffle"].keys():
         giveaway["raffle"][user.lower()] += amount
         Parent.RemovePoints(user, user, amount*100)
+        add_to_givers(user, amount * 100)
         Parent.SendStreamMessage(user + " just bought " + str(amount) + " raffle tickets.")
         update_json()
         return 1
     else:
         giveaway["raffle"][user.lower()] = amount
         Parent.RemovePoints(user, user, amount*100)
+        add_to_givers(user, amount * 100)
         Parent.SendStreamMessage(user + " just bought " + str(amount) + " raffle tickets.")
         update_json()
         return 2
@@ -250,6 +252,18 @@ def select_raffle_winner():
             f.write("\n" + giveaway["game"] + " " + giveaway["key"])
 
         return None
+
+
+def add_to_givers(user, amount):
+    giverLocation = os.path.join(os.path.dirname(__file__), '../../Twitch/Givers/' + user)
+
+    if not (os.path.exists(giverLocation + '.txt')):
+        return
+    with open(giverLocation + '.txt', 'r') as vote:
+        voteData = int(vote.read().decode('utf-8-sig'))
+    voteData += amount
+    with open(giverLocation + '.txt', 'w') as vote:
+        vote.write(str(voteData))
 
 
 def update_json():
