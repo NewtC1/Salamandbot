@@ -14,7 +14,9 @@ HighestGivers/.idea/
 # Moonrise
 */.idea
 
-# Rimeheart/keys.txt
+# Rimeheart
+Rimeheart/keys.txt
+Rimeheart/giveaway.json
 
 # scratch files
 scratch.txt
@@ -25,3 +27,5 @@ scratch.txt
 
 # other people's stuff
 TempBonusCurrency
+OBSRemoteParameters
+SLOBSRemoteParameters
