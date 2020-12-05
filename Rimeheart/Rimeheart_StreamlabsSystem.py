@@ -171,7 +171,9 @@ def respond(data, output):
 def select_new_game():
     """ Returns a new dictionary with the game information. """
     global giveaway
+    global start_time
 
+    start_time = time()
     Parent.SendStreamMessage(
         "Selecting another game for raffle. !raffle to enter, 100 logs each. Raffles last 30 minutes.")
 
