@@ -108,6 +108,7 @@ def Execute(data):
     global MySet
     """Required Execute function, run whenever a user says anything."""
 
+    Parent.Log("Rimeheart IsLive", "IsLive: " + str(Parent.IsLive()))
     if not Parent.IsLive() and MySet.OnlyLive:
         return
 
@@ -139,7 +140,7 @@ def Tick():
     global start_time
     global MySet
 
-    if MySet.OnlyLive and not Parent.IsLive:
+    if MySet.OnlyLive and not Parent.IsLive():
         return
 
     if time() - start_time > time_between_raffles:
@@ -273,5 +274,3 @@ def add_to_givers(user, amount):
 
 def update_json():
     global giveaway
-    with open(current_giveaway, "w+") as f:
-        json.dump(giveaway, f)
