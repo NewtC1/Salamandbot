@@ -81,7 +81,6 @@ def Init():
     # Globals
     global MySet
     global start_time
-    global time_between_raffles
     global giveaway
 
     # Load in saved settings
@@ -89,7 +88,6 @@ def Init():
 
     # Define global variables
     start_time = time()
-    time_between_raffles = 1800  # default to 30 minutes
 
     if not os.path.exists(current_giveaway):
         giveaway = select_new_game()
@@ -112,7 +110,7 @@ def Execute(data):
     if not Parent.IsLive() and MySet.OnlyLive:
         return
 
-    if data.GetParam(0) == "!raffle":
+    if data.GetParam(0) == MySet.RaffleCommand:
         if data.GetParamCount() < 2:
             buy_raffle(data.User)
         else:
@@ -121,7 +119,7 @@ def Execute(data):
             except ValueError as e:
                 Parent.SendStreamMessage("Sorry, but " + data.GetParam(1) + " is not an integer.")
 
-    if data.GetParam(0) == "!rafflegame":
+    if data.GetParam(0) == MySet.GameCommand:
         game = giveaway["game"]
         Parent.SendStreamMessage("The current raffle target is: " + game + ". !raffle to enter.")
 
@@ -139,6 +137,8 @@ def Tick():
     """Required tick function, run whenever possible."""
     global start_time
     global MySet
+
+    time_between_raffles = int(MySet.Duration)  # default to 30 minutes
 
     if MySet.OnlyLive and not Parent.IsLive():
         return
@@ -176,7 +176,8 @@ def select_new_game():
 
     start_time = time()
     Parent.SendStreamMessage(
-        "Selecting another game for raffle. !raffle to enter, 100 logs each. Raffles last 30 minutes.")
+        "Selecting another game for raffle. " + MySet.RaffleCommand +
+        " to enter, 100 logs each. Raffles last 30 minutes.")
 
     # select the next key
     with open(keys_file, "r") as f:
@@ -216,7 +217,7 @@ def buy_raffle(user, amount=1):
     global giveaway
 
     if amount*100 > Parent.GetPoints(user):
-        Parent.SendStreamMessage("You don't have enough points for that.")
+        Parent.SendStreamMessage("You don't have enough " + MySet.PointsName + " for that.")
         return False
 
     Parent.RemovePoints(user, user, amount * 100)
@@ -274,3 +275,6 @@ def add_to_givers(user, amount):
 
 def update_json():
     global giveaway
+
+    with open(current_giveaway, "w+") as f:
+        json.dump(giveaway, f)

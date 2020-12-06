@@ -1,10 +1,38 @@
 {
   "output_file": "settings.json",
   "OnlyLive": {
-      "type": "checkbox",
-      "value": false,
-      "label": "Only play while live?",
-      "tooltip": "Toggles only-live functionality",
-      "group": "General"
+    "type": "checkbox",
+    "value": false,
+    "label": "Only play while live?",
+    "tooltip": "Toggles only-live functionality",
+    "group": "General"
+  },
+  "PointsName": {
+    "type": "textbox",
+    "value": "points",
+    "label": "Name of your points",
+    "tooltip": "This displays in certain messages",
+    "group": "General"
+  },
+  "GameCommand": {
+    "type": "textbox",
+    "value": "!rafflegame",
+    "label": "Current raffle target command",
+    "tooltip": "The command used to display the current game on raffle.",
+    "group": "General"
+  },
+  "RaffleCommand": {
+    "type": "textbox",
+    "value": "!raffle",
+    "label": "Raffle entry command",
+    "tooltip": "The command used to enter a raffle.",
+    "group": "General"
+  },
+  "Duration": {
+    "type": "textbox",
+    "value": 1800,
+    "label": "Duration of giveaways",
+    "tooltip": "How long people have to join a giveaway.",
+    "group": "General"
   }
 }
