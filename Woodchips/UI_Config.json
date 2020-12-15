@@ -1,3 +1,45 @@
 {
-  "output_file": "settings.json"
+  "output_file": "settings.json",
+  "PayoutInterval": {
+    "type": "textbox",
+    "value": "600",
+    "label": "Payout Frequency",
+    "tooltip": "The frequency of the payouts, measured in seconds.",
+    "group": "General"
+  },
+  "PayoutRate": {
+    "type": "textbox",
+    "value": "36",
+    "label": "Base Payout",
+    "tooltip": "The base reward per payout.",
+    "group": "General"
+  },
+  "ConsecutiveWatchBonus": {
+    "type": "textbox",
+    "value": "50",
+    "label": "The bonus for watching a stream consecutively.",
+    "tooltip": "",
+    "group": "General"
+  },
+  "FollowBonus": {
+    "type": "textbox",
+    "value": "300",
+    "label": "Follow Bonus",
+    "tooltip": "The amount of points earned on a follow.",
+    "group": "General"
+  },
+  "ActiveWatchBonus": {
+    "type": "textbox",
+    "value": "50",
+    "label": "Active watch bonus",
+    "tooltip": "The amount of additional points for chatting during the payout period.",
+    "group": "General"
+  },
+  "Command": {
+    "type": "textbox",
+    "value": "!redeem",
+    "label": "Command",
+    "tooltip": "The string used to redeem points.",
+    "group": "General"
+  }
 }

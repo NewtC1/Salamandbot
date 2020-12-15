@@ -6,11 +6,12 @@ for everyone in chat for x seconds"""
 import json
 import os, os.path
 import codecs
+import time
 
 # ---------------------------------------
 # [Required] Script information
 # ---------------------------------------
-ScriptName = "Template"
+ScriptName = "Woodchips"
 Website = "https://www.twitch.tv/newtc"
 Creator = "Newt"
 Version = "1.0.0.0"
@@ -26,6 +27,7 @@ Description = "Basic Template, use to create other scripts"
 # Variables
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
+points_json = os.path.join(os.path.dirname(__file__), "points.json")
 
 
 # ---------------------------------------
@@ -77,8 +79,22 @@ def Init():
     """Required Init function, run when the bot loads the script."""
     # Globals
     global MySet
+    global LastPayout
     # Load in saved settings
     MySet = Settings(settingsFile)
+    LastPayout = time.time()
+
+    if not os.path.exists(points_json):
+        with open(points_json, "w+") as f:
+            base_file = \
+            {
+                "Users": {
+
+                }
+            }
+
+            result = json.dumps(base_file, f, indent=4)
+            f.write(result)
 
     # End of Init
     return
@@ -86,11 +102,21 @@ def Init():
 
 def Execute(data):
     """Required Execute function, run whenever a user says anything."""
+
     return
 
 
 def Tick():
     """Required tick function, run whenever possible."""
+    global MySet
+    global LastPayout
+
+    # if the last payout was more than the interval's time ago, payout now.
+    if time.time() - LastPayout > MySet.PayoutInterval and Parent.IsLive() is True:
+
+        for viewer in set(Parent.GetViewerList()):
+            change_points(viewer, MySet.PayoutRate)
+
     return
 
 
@@ -111,3 +137,37 @@ def respond(data, output):
             Parent.SendStreamWhisper(data.UserName, retVal)
         else:
             Parent.SendStreamMessage(str(retVal))
+
+
+def change_points(user, amount):
+    points = load_points()
+
+    if (points["Users"][user] + amount) < 0:
+        return False
+
+    if user in points.keys():
+        points["Users"][user] += amount
+    else:
+        points["Users"][user] = amount
+
+    update_points(points)
+
+    return True
+
+
+def load_points():
+    """Loads the points json."""
+
+    with open(points_json, "r") as json_file:
+        points = json.load(json_file, encoding="utf-8-sig")
+
+    return points
+
+
+def update_points(points_data):
+    """Saves the data."""
+    with open(points_json, "w+") as json_file:
+        points = json.dumps(points_data, json_file, encoding="utf-8-sig")
+        json_file.write(points)
+
+    return points

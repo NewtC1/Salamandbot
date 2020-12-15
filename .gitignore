@@ -1,22 +1,19 @@
-# .idea files
-.idea/
 
 # counter
 Counter/counter.json
 
 # Festival 
-Festival/.idea/
 Festival/stories.json
 
-# Givers
-HighestGivers/.idea/
-
-# Moonrise
+# idea
 */.idea
 
 # Rimeheart
 Rimeheart/keys.txt
 Rimeheart/giveaway.json
+
+# Woodchips
+Woodchips/points.json
 
 # scratch files
 scratch.txt
