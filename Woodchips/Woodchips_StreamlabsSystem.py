@@ -115,10 +115,12 @@ def Tick():
     global LastPayout
 
     # if the last payout was more than the interval's time ago, payout now.
-    if time.time() - LastPayout > MySet.PayoutInterval and Parent.IsLive() is True:
+    if time.time() - LastPayout > int(MySet.PayoutInterval):
         Parent.Log("Woodchips", "Tick")
         for viewer in set(Parent.GetViewerList()):
-            change_points(viewer, MySet.PayoutRate)
+            change_points(viewer, int(MySet.PayoutRate))
+
+        LastPayout = time.time()
 
     return
 
@@ -149,7 +151,7 @@ def change_points(user, amount):
         if (points["Users"][user] + amount) < 0:
             return False
 
-    if user in points.keys():
+    if user in points["Users"].keys():
         points["Users"][user] += amount
     else:
         points["Users"][user] = amount
