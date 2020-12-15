@@ -106,7 +106,7 @@ def Execute(data):
     global MySet
     """Required Execute function, run whenever a user says anything."""
 
-    Parent.Log("Rimeheart IsLive", "IsLive: " + str(Parent.IsLive()))
+    # Parent.Log("Rimeheart IsLive", "IsLive: " + str(Parent.IsLive()))
     if not Parent.IsLive() and MySet.OnlyLive:
         return
 
