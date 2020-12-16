@@ -35,11 +35,18 @@
     "tooltip": "The amount of additional points for chatting during the payout period.",
     "group": "General"
   },
-  "Command": {
+  "RedeemCommand": {
     "type": "textbox",
     "value": "!redeem",
     "label": "Command",
     "tooltip": "The string used to redeem points.",
+    "group": "General"
+  },
+  "CheckCommand": {
+    "type": "textbox",
+    "value": "!woodchips",
+    "label": "Command",
+    "tooltip": "The command used to check the number of woodchips a user has.",
     "group": "General"
   }
 }

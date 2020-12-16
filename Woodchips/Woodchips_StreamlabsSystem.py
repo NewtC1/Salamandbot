@@ -103,7 +103,10 @@ def Init():
 def Execute(data):
     """Required Execute function, run whenever a user says anything."""
 
-    if data.GetParam(0) == MySet.Command:
+    if data.GetParam(0) == MySet.CheckCommand:
+        respond(data, "You have " + str(get_points(data.User)) + " woodchips.")
+
+    if data.GetParam(0) == MySet.RedeemCommand:
         pass
 
     return
@@ -115,7 +118,7 @@ def Tick():
     global LastPayout
 
     # if the last payout was more than the interval's time ago, payout now.
-    if time.time() - LastPayout > int(MySet.PayoutInterval):
+    if time.time() - LastPayout > int(MySet.PayoutInterval) and Parent.IsLive():
         Parent.Log("Woodchips", "Tick")
         for viewer in set(Parent.GetViewerList()):
             change_points(viewer, int(MySet.PayoutRate))
@@ -177,3 +180,12 @@ def update_points(points_data):
         json_file.write(points)
 
     return points
+
+
+def get_points(user):
+    points = load_points()
+
+    if user in points["Users"].keys():
+        return points["Users"][user]
+    else:
+        return 0
