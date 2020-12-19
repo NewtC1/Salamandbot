@@ -264,8 +264,8 @@ def Execute(data):
             target = security_check(game)
 
             # check if the file exists
-            if not vote_exists(target):
-                return_value += 'That %s does not exist yet. Recommend it to me instead and I may add it. '%MySet.ResultName
+            if not target:
+                return_value += 'That %s does not exist yet. Try using woodchips to add it.'%MySet.ResultName
                 respond(data, return_value)
                 return
 
@@ -465,6 +465,7 @@ def Tick():
 
     return
 
+
 def check_options(data):
     """Required Execute function"""
     return_value = ''
@@ -520,12 +521,19 @@ def respond(data, output):
 
 
 def security_check(input):
-    target = input
-    if '\\' in target:
-        target = target.split('\\')[-1]
-    if '/' in target:
-        target = target.split('/')[-1]
-    return target
+    data = get_vote_data()
+    data_key_list = data["Profiles"][get_active_profile()].keys()
+    lower_key_list = [key.lower() for key in data_key_list]
+    comparison_key_list = dict(zip(lower_key_list, data_key_list))
+    Parent.Log("comparison check", "Comparison list: " + str(comparison_key_list.keys()))
+    Parent.Log("comparison check", "Results list: " + str(comparison_key_list.values()))
+    Parent.Log("comparison check", "Input: " + input.lower())
+
+    if input.lower() in comparison_key_list.keys():
+        Parent.Log("comparison check", "Match found: " + comparison_key_list[input.lower()])
+        return comparison_key_list[input.lower()]
+    else:
+        return None
 
 
 # helper function that seperates values from the data Datatype
@@ -710,7 +718,7 @@ def update_vote_data(data):
 
 def add_vote_option(option, amount):
     data = get_vote_data()
-    data["Profiles"][get_active_profile()][option] = {"vote value": amount,
+    data["Profiles"][get_active_profile()][option.lower()] = {"vote value": amount,
                                                       "votes list": {},
                                                       "contributor": "",
                                                       "length of game": 0,
