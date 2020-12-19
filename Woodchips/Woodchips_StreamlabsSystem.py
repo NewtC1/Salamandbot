@@ -119,24 +119,27 @@ def Execute(data):
         "break": redeemable.Redeemable("break", "Time to hit the road.", -3000, data.User.lower())
     }
 
+    # moved here for the sake of readability. Also resolves an error related to these options not existing before now.
+    if data.GetParamCount() >= 3:
+        args = " ".join(data.Message.split(" ")[2:])
+        redeemables["add"] = redeemable.Redeemable("add", "Adding your game to the list!", -20000,
+                                                   data.User.lower(), add_to_votes, args)
+        redeemables["move"] = redeemable.Redeemable("move", "Moving " + args + " to the top of the list!", -30000,
+                                                    data.User.lower(), move_option_to_top, args)
+        redeemables["top"] = redeemable.Redeemable("top", "Adding and moving " + args + " to the top of the list!",
+                                                   -45000,
+                                                   data.User.lower(), create_and_move, args)
+
     if data.GetParam(0) == MySet.CheckCommand:
         respond(data, "You have " + str(get_points(data.User)) + " woodchips.")
 
-    if data.GetParam(0).lower() == MySet.RedeemCommand:
+    if data.GetParam(0).lower() == MySet.RedeemCommand and data.GetParam(1).lower() in redeemables.keys():
         if data.GetParamCount() == 2:
             if redeemables[data.GetParam(1).lower()].redeem():
                 Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
             else:
                 Parent.SendStreamMessage("You don't have enough woodchips for that.")
         if data.GetParamCount() >= 3:
-            args = " ".join(data.Message.split(" ")[2:])
-            redeemables["add"] = redeemable.Redeemable("add", "Adding your game to the list!", -20000,
-                                            data.User.lower(), add_to_votes, args)
-            redeemables["move"] = redeemable.Redeemable("move", "Moving " + args + " to the top of the list!", -30000,
-                                             data.User.lower(), move_option_to_top, args)
-            redeemables["top"] = redeemable.Redeemable("top", "Adding and moving " + args + " to the top of the list!", -45000,
-                                            data.User.lower(), create_and_move, args)
-
             if redeemables[data.GetParam(1).lower()].redeem():
                 Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
             else:
