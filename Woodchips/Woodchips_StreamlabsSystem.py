@@ -7,6 +7,11 @@ import json
 import os, os.path
 import codecs
 import time
+import sys
+
+sys.path.append(os.path.dirname(__file__))
+import redeemable
+
 
 # ---------------------------------------
 # [Required] Script information
@@ -28,6 +33,7 @@ Description = "Basic Template, use to create other scripts"
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
 points_json = os.path.join(os.path.dirname(__file__), "points.json")
+vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
 
 
 # ---------------------------------------
@@ -103,11 +109,38 @@ def Init():
 def Execute(data):
     """Required Execute function, run whenever a user says anything."""
 
+    command = data.GetParam(0)
+    # redeemables
+    redeemables = {
+        "recap": redeemable.Redeemable("recap", "Recap that story Newt!", -200, data.User.lower()),
+        "drink": redeemable.Redeemable("drink", "Take a drink!", -500, data.User.lower()),
+        "pet": redeemable.Redeemable("pet", "Pet that cat!", -600, data.User.lower()),
+        "story": redeemable.Redeemable("story", "Story time!", -1000, data.User.lower(), select_story),
+        "break": redeemable.Redeemable("break", "Time to hit the road.", -3000, data.User.lower())
+    }
+
     if data.GetParam(0) == MySet.CheckCommand:
         respond(data, "You have " + str(get_points(data.User)) + " woodchips.")
 
-    if data.GetParam(0) == MySet.RedeemCommand:
-        pass
+    if data.GetParam(0).lower() == MySet.RedeemCommand:
+        if data.GetParamCount() == 2:
+            if redeemables[data.GetParam(1).lower()].redeem():
+                Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
+            else:
+                Parent.SendStreamMessage("You don't have enough woodchips for that.")
+        if data.GetParamCount() >= 3:
+            args = " ".join(data.Message.split(" ")[2:])
+            redeemables["add"] = redeemable.Redeemable("add", "Adding your game to the list!", -20000,
+                                            data.User.lower(), add_to_votes, args)
+            redeemables["move"] = redeemable.Redeemable("move", "Moving " + args + " to the top of the list!", -30000,
+                                             data.User.lower(), move_option_to_top, args)
+            redeemables["top"] = redeemable.Redeemable("top", "Adding and moving " + args + " to the top of the list!", -45000,
+                                            data.User.lower(), create_and_move, args)
+
+            if redeemables[data.GetParam(1).lower()].redeem():
+                Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
+            else:
+                Parent.SendStreamMessage("You don't have enough woodchips for that.")
 
     return
 
@@ -189,3 +222,56 @@ def get_points(user):
         return points["Users"][user]
     else:
         return 0
+
+
+def select_story():
+    Parent.SendStreamMessage("!story roll")
+
+# ======================== Vote Functions ==========================
+def get_active_profile():
+    global vote_location
+    data = get_vote_data()
+    return data["Active Profile"]
+
+
+def update_vote_data(data):
+    Parent.Log("update_vote_data", "Adding the following Data structure: " + str(data))
+    with codecs.open(os.path.join(vote_location, "vote.json"), mode='w+') as f:
+        output = json.dumps(data, f, indent=2, encoding='utf-8-sig')
+        f.write(output)
+    Parent.Log("update_vote_data", "Updated the file successfully.")
+
+    return output
+
+
+def get_vote_data():
+    with codecs.open(os.path.join(vote_location, "vote.json"), encoding='utf-8-sig', mode='r') as f:
+        vote_data = json.load(f, encoding='utf-8-sig')
+
+    return vote_data
+
+
+def add_to_votes(option):
+    data = get_vote_data()
+    data["Profiles"][get_active_profile()][option] = {"vote value": 0,
+                                                      "votes list": {},
+                                                      "contributor": "",
+                                                      "length of game": 0,
+                                                      "last added": time.time()}
+    vote_data = update_vote_data(data)
+    return vote_data
+
+
+def move_option_to_top(option):
+    data = get_vote_data()
+
+    values = list(data["Profiles"][get_active_profile()][vote]["vote value"] for vote in data["Profiles"][get_active_profile()].keys())
+    top_value = max(values)
+
+    data["Profiles"][get_active_profile()][option]["vote value"] = top_value
+    update_vote_data(data)
+
+
+def create_and_move(option):
+    add_to_votes(option)
+    move_option_to_top(option)
