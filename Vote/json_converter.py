@@ -14,7 +14,7 @@ for profile in listdir(vote_dir):
         json_file["Profiles"][profile] = {}
         for sub_file in listdir(path.join(vote_dir, profile)):
             vote_file_dir = path.join(vote_dir, profile, sub_file)
-            name = sub_file.split('.')[0]
+            name = sub_file.split('.')[0].lower()
 
             if name != "votes":
                 with open(vote_file_dir, 'r') as logpile:
