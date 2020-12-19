@@ -176,13 +176,8 @@ def Execute(data):
             data_input = ' '.join(data_input)
             game = data_input
 
+        add_vote_option(game, vote_value)
         vote_data = get_vote_data()
-        vote_data["Profiles"][get_active_profile()][game] = {"vote value": vote_value,
-                                                             "votes list": {},
-                                                             "contributor": "",
-                                                             "length of game": 0,
-                                                             "last added": time.time()}
-        vote_data = update_vote_data(vote_data)
         if game in vote_data["Profiles"][get_active_profile()].keys():
             respond(data, 'Successfully created the option %s!' % game)
         else:
@@ -715,6 +710,13 @@ def update_vote_data(data):
 
 def add_vote_option(option, amount):
     data = get_vote_data()
+    data["Profiles"][get_active_profile()][option] = {"vote value": amount,
+                                                      "votes list": {},
+                                                      "contributor": "",
+                                                      "length of game": 0,
+                                                      "last added": time.time()}
+    vote_data = update_vote_data(data)
+    return vote_data
 
 
 def get_vote_option_value(option):
