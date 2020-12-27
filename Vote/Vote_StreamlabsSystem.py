@@ -162,7 +162,7 @@ def Execute(data):
 
         if '"' in data_input:
             pattern = '"(.+)"\s*(\d*)'
-            respond(data, data_input)
+            # respond(data, data_input)
             match = re.search(pattern, data_input)
             game = match.group(1)
             vote_value = match.group(2)
