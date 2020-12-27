@@ -115,7 +115,7 @@ def Execute(data):
         "recap": redeemable.Redeemable("recap", "Recap that story Newt!", -200, data.User.lower()),
         "drink": redeemable.Redeemable("drink", "Take a drink!", -500, data.User.lower()),
         "pet": redeemable.Redeemable("pet", "Pet that cat!", -600, data.User.lower()),
-        "story": redeemable.Redeemable("story", "Story time!", -1000, data.User.lower(), select_story),
+        "story": redeemable.Redeemable("story", "Story time!", -1000, data.User.lower()),
         "break": redeemable.Redeemable("break", "Time to hit the road.", -3000, data.User.lower())
     }
 
