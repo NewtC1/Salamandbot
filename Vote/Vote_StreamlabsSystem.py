@@ -142,14 +142,21 @@ def Execute(data):
     """Required Execute function"""
     global cooldown_list
     return_value = ''
-    looped = False
+    sender_user_id = ""
+    sender_user_display = ""
+    if data.IsFromTwitch():
+        sender_user_id = data.UserName.lower
+        sender_user_display = data.UserName
+    elif data.IsFromYoutube():
+        sender_user_id = data.User
+        sender_user_display = data.UserName
 
     # does nothing if the stream isn't live with the "OnlyLive" setting ticked
     if MySet.OnlyLive and (Parent.IsLive() is False):
         return
 
     # addvoteoption
-    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!addvoteoption":
+    if Parent.HasPermission(sender_user_id, "Caster", "") and data.GetParam(0).lower() == "!addvoteoption":
         # getting game name!
         data_input = data.Message
 
@@ -184,7 +191,7 @@ def Execute(data):
             respond(data, "Something went wrong. Let Newt know!")
 
     # deletevoteoption
-    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteoption":
+    if Parent.HasPermission(sender_user_id, "Caster", "") and data.GetParam(0).lower() == "!deletevoteoption":
         # getting game name
         data_input = data.Message
         data_input = data_input.split(" ")
@@ -201,13 +208,13 @@ def Execute(data):
             respond(data, 'Something went wrong. Let Newt know!')
 
     # setvoteprofile
-    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!setvoteprofile":
+    if Parent.HasPermission(sender_user_id, "Caster", "") and data.GetParam(0).lower() == "!setvoteprofile":
         set_active_vote_profile(data.GetParam(1))
         return_value += "The campfires shift and blur. A new set of campfires fades into existence."
         respond(data, return_value)
 
     # deletevoteprofile
-    if Parent.HasPermission(data.User, "Caster", "") and data.GetParam(0).lower() == "!deletevoteprofile":
+    if Parent.HasPermission(sender_user_id, "Caster", "") and data.GetParam(0).lower() == "!deletevoteprofile":
         delete_vote_location(data.GetParam(1).lower())
         return_value += "The old campfire blurs and disappears in front of you. It is no more."
         respond(data, return_value)
@@ -235,12 +242,12 @@ def Execute(data):
             return
 
         if data.GetParamCount() == 2 and data.GetParam(1).lower() == 'stop':
-            if data.UserName.lower() not in active_continuous_adds.keys():
+            if sender_user_id not in active_continuous_adds.keys():
                 return_value = 'There is nothing to stop adding to.'
                 Parent.SendStreamMessage(return_value)
                 return
             else:
-                del active_continuous_adds[data.User]
+                del active_continuous_adds[sender_user_id]
                 return_value = 'You have been removed from the continuous add list.'
                 Parent.SendStreamMessage(return_value)
                 return
@@ -257,7 +264,7 @@ def Execute(data):
         data_input = data_input.split()
         amount = data_input[len(data_input)-1].lower()
 
-        if data.UserName.lower() not in cooldown_list.keys() or \
+        if sender_user_id not in cooldown_list.keys() or \
                 (amount.lower() == 'stop' or amount.lower() == 'all'):
 
             # security checking for data values
@@ -269,37 +276,37 @@ def Execute(data):
                 respond(data, return_value)
                 return
 
-            # check if the user is 5attempting to do a !vote <name> all
+            # check if the sender_user_id is 5attempting to do a !vote <name> all
             if amount.lower() == 'all':
                 Parent.Log("Vote all", "Adding all logs.")
-                new_data = (data.User.lower(), target, amount.lower())
-                # only add anything if the user isn't on the cooldown list.
-                if data.UserName.lower() not in cooldown_list.keys():
-                    add_amount = min(Parent.GetPoints(data.User), MySet.voteMaximum)
-                    if data.User not in active_continuous_adds:
-                        active_continuous_adds[data.User.lower()] = new_data
+                new_data = (sender_user_id, target, amount.lower())
+                # only add anything if the sender_user_id isn't on the cooldown list.
+                if sender_user_id not in cooldown_list.keys():
+                    add_amount = min(Parent.GetPoints(sender_user_id), MySet.voteMaximum)
+                    if sender_user_id not in active_continuous_adds:
+                        active_continuous_adds[sender_user_id] = new_data
                         return_value += 'You have been added to the continuous add list and are now adding ' + \
                                    MySet.PointName + 's until you run out. '
                 else:
-                    # if the user isn't in the add list, add it and add the data
-                    if data.User not in active_continuous_adds:
-                        active_continuous_adds[data.User.lower()] = new_data
+                    # if the sender_user_id isn't in the add list, add it and add the data
+                    if sender_user_id not in active_continuous_adds:
+                        active_continuous_adds[sender_user_id] = new_data
                         response = 'You have been added to the continuous add list and are now adding ' + \
                                    MySet.PointName + 's until you run out. '
                         Parent.SendStreamMessage(response)
                         return
                     else:
-                        active_continuous_adds[data.User.lower()] = new_data
+                        active_continuous_adds[sender_user_id] = new_data
                         response = 'You are already in the the active list. Type "!vote stop" at any time to stop adding. '
                         Parent.SendStreamMessage(response)
                         return
 
-            # check if the user is attempting to stop adding logs automatically
+            # check if the sender_user_id is attempting to stop adding logs automatically
             elif amount == 'stop' and MySet.continuousVoting:
-                if data.User in active_continuous_adds:
-                    return_value += 'You have been removed from the continuous add list for '+str(target)+' '+str(data.User)
-                    Parent.SendStreamWhisper(data.User, return_value)
-                    del active_continuous_adds[data.User]
+                if sender_user_id in active_continuous_adds:
+                    return_value += 'You have been removed from the continuous add list for '+str(target)+' '+str(sender_user_display)
+                    Parent.SendStreamWhisper(sender_user_id, return_value)
+                    del active_continuous_adds[sender_user_id]
                     return
                 else:
                     return_value += 'You aren\'t on the continuous add list.'
@@ -316,27 +323,27 @@ def Execute(data):
                     respond(data, return_value)
                     return
 
-             # check the amount is not higher than the user can add.
-            if add_amount > Parent.GetPoints(data.User):
+             # check the amount is not higher than the sender_user_id can add.
+            if add_amount > Parent.GetPoints(sender_user_id):
                 return_value += 'Your %s pales in comparison to the amount you wish to add, %s. You only have %s. Wait to gather more.'\
-                          %(MySet.ResultName, data.User, str(Parent.GetPoints(data.User)))
+                          %(MySet.ResultName, sender_user_display, str(Parent.GetPoints(sender_user_id)))
                 respond(data, return_value)
 
                 # if they're in the auto add list, remove them from that list
-                if data.User in active_continuous_adds:
-                    del active_continuous_adds[data.User]
+                if sender_user_id in active_continuous_adds:
+                    del active_continuous_adds[sender_user_id]
                 return
 
             # if users can add all the time, then ignore cooldowns and just add it
             if not MySet.AntiSnipe and add_amount >= 0:
                 # get the number of points afterwards
-                result = add_to_campfire(data.User, target, add_amount)
+                result = add_to_campfire(sender_user_id, target, add_amount)
                 return_value += "%s added %i to %s's %s. There are now %i %ss in the %s. " % (
-                data.User, add_amount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
+                sender_user_display, add_amount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
                 respond(data, return_value)
                 return
 
-            # If the user tries to add more than the set maximum, change the amount to add to be that maximum.
+            # If the sender_user_id tries to add more than the set maximum, change the amount to add to be that maximum.
             if add_amount > int(MySet.voteMaximum):
                 # get the number of seconds this will take to finish
                 seconds_to_completion = int(((add_amount-float(MySet.voteMaximum))/float(MySet.voteMaximum))*int(MySet.cooldownTime))
@@ -354,10 +361,10 @@ def Execute(data):
 
                 add_amount = int(MySet.voteMaximum)
                 # add users to the continuous add list and create a separate dictionary that keeps track of their cap
-                if data.User not in active_continuous_adds:
+                if sender_user_id not in active_continuous_adds:
                     # store the new data as a tuple for another function to deal with.
-                    new_data = (data.User.lower(), target, int(amount) - add_amount)
-                    active_continuous_adds[data.User.lower()] = new_data
+                    new_data = (sender_user_id, target, int(amount) - add_amount)
+                    active_continuous_adds[sender_user_id] = new_data
                     # send users a message to inform them how long logs will add for.
                     if hours_to_completion != 0:
                         return_value += ("You have been added to the continuous add list. " +
@@ -380,42 +387,42 @@ def Execute(data):
             # check the amount is above 0.
             if add_amount <= 0:
                 # if they're in the auto add list, remove them from that list
-                if data.User in active_continuous_adds:
-                    del active_continuous_adds[data.User]
-                    return_value += data.User + ' if you got this message, you ran out of ' + MySet.PointName + \
+                if sender_user_id in active_continuous_adds:
+                    del active_continuous_adds[sender_user_id]
+                    return_value += sender_user_display + ' if you got this message, you ran out of ' + MySet.PointName + \
                               's and have been removed from auto add.'
                 else:
                     return_value = '%s, %i is less than or equal to 0. Please offer at least one %ss.' \
-                             % (data.User, add_amount, MySet.PointName)
+                             % (sender_user_id, add_amount, MySet.PointName)
 
                 respond(data, return_value)
                 return
 
             # add it to the campfire
-            result = add_to_campfire(data.User, target, add_amount)
+            result = add_to_campfire(sender_user_id, target, add_amount)
 
-            # output the result to the user
+            # output the result to the sender_user_id
             return_value += "%s added %i to %s's %s. There are now %i %ss in the %s. "\
-                      %(data.User, add_amount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
+                      %(sender_user_display, add_amount, target, MySet.ResultName, result, MySet.PointName, MySet.ResultName)
 
             cooldown = MySet.cooldownTime
             # set the cooldown and save it
             if MySet.dynamicCooldown:
                 cooldown = add_amount * (float(MySet.cooldownTime)/float(MySet.voteMaximum))
-            # add a user to a dictionary when they use the command.
-            cooldown_list[data.UserName.lower()] = time.time(), cooldown
+            # add a sender_user_id to a dictionary when they use the command.
+            cooldown_list[sender_user_id] = time.time(), cooldown
             
         else:
             # Output the cooldown message
-            if data.UserName.lower() in cooldown_list.keys():
-                seconds_to_wait = get_cooldown(data.User)
+            if sender_user_id in cooldown_list.keys():
+                seconds_to_wait = get_cooldown(sender_user_id)
                 return_value += "You have to wait " + str(int(seconds_to_wait)) + ' more seconds before you can add ' + \
                           MySet.PointName + 's again.'
                 respond(data, return_value)
                 return
 
         # sends the final message
-        if not looped and not MySet.SilentAdds:
+        if not MySet.SilentAdds:
             respond(data, return_value)
 
     # debug section
@@ -515,7 +522,7 @@ def respond(data, output):
     # If the original message is from a live stream
     else:
         if data.IsWhisper():
-            Parent.SendStreamWhisper(data.UserName, retVal)
+            Parent.SendStreamWhisper(data.User, retVal)
         else:
             Parent.SendStreamMessage(str(retVal))
 
