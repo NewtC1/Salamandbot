@@ -725,7 +725,7 @@ def update_vote_data(data):
 
 def add_vote_option(option, amount):
     data = get_vote_data()
-    data["Profiles"][get_active_profile()][option.lower()] = {"vote value": amount,
+    data["Profiles"][get_active_profile()][option] = {"vote value": amount,
                                                       "votes list": {},
                                                       "contributor": "",
                                                       "length of game": 0,
