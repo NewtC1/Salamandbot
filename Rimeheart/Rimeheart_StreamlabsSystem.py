@@ -294,7 +294,7 @@ def parse_origin(data):
     sender_user_id = ""
     sender_user_display = ""
     if data.IsFromTwitch():
-        sender_user_id = data.UserName.lower
+        sender_user_id = data.UserName.lower()
         sender_user_display = data.UserName
     elif data.IsFromYoutube():
         sender_user_id = data.User
