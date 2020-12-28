@@ -85,16 +85,14 @@ def Init():
     # Load in saved settings
     MySet = Settings(settingsFile)
 
-    # Define global variables
-    start_time = get_start_time()
-
     if not os.path.exists(current_giveaway):
         giveaway = select_new_game()
         with open(current_giveaway, "w+") as f:
-            json.dump(giveaway, f, encoding='utf-8-sig', indent = 4)
+            json.dump(giveaway, f, encoding='utf-8-sig', indent=4)
     else:
         with open(current_giveaway, "r") as f:
             giveaway = json.load(f)
+            update_start_time()
 
     # End of Init
     return
@@ -176,7 +174,6 @@ def select_new_game():
     """ Returns a new dictionary with the game information. """
     global giveaway
 
-    update_start_time()
     Parent.SendStreamMessage(
         "Selecting another game for raffle. " + MySet.RaffleCommand +
         " to enter, 100 logs each. Raffles last 30 minutes.")
@@ -206,7 +203,8 @@ def select_new_game():
     giveaway = {
         "game": game,
         "key": key,
-        "raffle": {}
+        "raffle": {},
+        "start_time": time()
     }
 
     Parent.SendStreamMessage("The next game up for raffle is " + game)
@@ -281,9 +279,8 @@ def update_start_time():
 
 
 def get_start_time():
-    with open("giveaway.json", "r") as f:
-        data = json.load(f)
-    return data["start_time"]
+    global giveaway
+    return giveaway["start_time"]
 
 
 def update_json():
