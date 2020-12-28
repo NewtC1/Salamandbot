@@ -80,19 +80,18 @@ def Init():
     """Required Init function, run when the bot loads the script."""
     # Globals
     global MySet
-    global start_time
     global giveaway
 
     # Load in saved settings
     MySet = Settings(settingsFile)
 
     # Define global variables
-    start_time = time()
+    start_time = get_start_time()
 
     if not os.path.exists(current_giveaway):
         giveaway = select_new_game()
         with open(current_giveaway, "w+") as f:
-            json.dump(giveaway, f, encoding='utf-8-sig')
+            json.dump(giveaway, f, encoding='utf-8-sig', indent = 4)
     else:
         with open(current_giveaway, "r") as f:
             giveaway = json.load(f)
@@ -104,7 +103,12 @@ def Init():
 def Execute(data):
     global giveaway
     global MySet
+    global send_user_display
+    global send_user_id
     """Required Execute function, run whenever a user says anything."""
+
+    send_user_id = parse_origin(data)[0]
+    send_user_display = parse_origin(data)[1]
 
     # Parent.Log("Rimeheart IsLive", "IsLive: " + str(Parent.IsLive()))
     if not Parent.IsLive() and MySet.OnlyLive:
@@ -112,10 +116,10 @@ def Execute(data):
 
     if data.GetParam(0) == MySet.RaffleCommand:
         if data.GetParamCount() < 2:
-            buy_raffle(data.User)
+            buy_raffle(send_user_id)
         else:
             try:
-                buy_raffle(data.User, int(data.GetParam(1)))
+                buy_raffle(send_user_id, int(data.GetParam(1)))
             except ValueError as e:
                 Parent.SendStreamMessage("Sorry, but " + data.GetParam(1) + " is not an integer.")
 
@@ -135,7 +139,6 @@ def Execute(data):
 
 def Tick():
     """Required tick function, run whenever possible."""
-    global start_time
     global MySet
 
     time_between_raffles = int(MySet.Duration)  # default to 30 minutes
@@ -143,7 +146,7 @@ def Tick():
     if MySet.OnlyLive and not Parent.IsLive():
         return
 
-    if time() - start_time > time_between_raffles:
+    if time() - get_start_time() > time_between_raffles:
         select_raffle_winner()
         select_new_game()
 
@@ -172,9 +175,8 @@ def respond(data, output):
 def select_new_game():
     """ Returns a new dictionary with the game information. """
     global giveaway
-    global start_time
 
-    start_time = time()
+    update_start_time()
     Parent.SendStreamMessage(
         "Selecting another game for raffle. " + MySet.RaffleCommand +
         " to enter, 100 logs each. Raffles last 30 minutes.")
@@ -226,7 +228,7 @@ def buy_raffle(user, amount=1):
         giveaway["raffle"][user.lower()] += amount
     else:
         giveaway["raffle"][user.lower()] = amount
-    Parent.SendStreamMessage(user + " just bought " + str(amount) + " raffle tickets.")
+    Parent.SendStreamMessage(send_user_display + " just bought " + str(amount) + " raffle tickets.")
     update_json()
 
     return True
@@ -273,8 +275,32 @@ def add_to_givers(user, amount):
             vote.write(str(amount))
 
 
+def update_start_time():
+    giveaway["start_time"] = time()
+    update_json()
+
+
+def get_start_time():
+    with open("giveaway.json", "r") as f:
+        data = json.load(f)
+    return data["start_time"]
+
+
 def update_json():
     global giveaway
 
     with open(current_giveaway, "w+") as f:
-        json.dump(giveaway, f)
+        json.dump(giveaway, f, indent=4)
+
+
+def parse_origin(data):
+    sender_user_id = ""
+    sender_user_display = ""
+    if data.IsFromTwitch():
+        sender_user_id = data.UserName.lower
+        sender_user_display = data.UserName
+    elif data.IsFromYoutube():
+        sender_user_id = data.User
+        sender_user_display = data.UserName
+
+    return sender_user_id, sender_user_display
