@@ -147,9 +147,10 @@ def Execute(data):
     if data.IsFromTwitch():
         sender_user_id = data.UserName.lower()
         sender_user_display = data.UserName
-    elif data.IsFromYoutube():
+    elif data.IsFromYoutube() or data.IsFromDiscord():
         sender_user_id = data.User
         sender_user_display = data.UserName
+
 
     # does nothing if the stream isn't live with the "OnlyLive" setting ticked
     if MySet.OnlyLive and (Parent.IsLive() is False):
