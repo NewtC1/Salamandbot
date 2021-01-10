@@ -57,6 +57,9 @@ class Settings:
             self.PointName = "points"
             self.SilentAdds = True
             self.CheckOptionsCommand = "!checkoptions"
+            self.Decay = False
+            self.Decay_Days = 7
+            self.Decay_Amount = 1
 
     def ReloadSettings(self, data):
         """Reload settings on save through UI"""
@@ -771,3 +774,4 @@ def decay():
             vote["vote value"] = vote["vote value"] - int(MySet.Decay_Amount)
             if vote["vote value"] < 0:
                 vote["vote value"] = 0
+    update_vote_data(vote_data)

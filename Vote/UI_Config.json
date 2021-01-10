@@ -108,8 +108,8 @@
 	"Decay_Amount": {
 		"type": "textbox",
 		"value": "1",
-		"lavel": "Decay Amount",
-		"tooltip": "1",
+		"label": "Decay Amount",
+		"tooltip": "The amount that decay removes from a vote each time it's triggered.",
 		"group": "Decay"
 	}
 }
