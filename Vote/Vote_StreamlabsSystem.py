@@ -140,7 +140,7 @@ def Init():
     # decay
     if MySet.Decay:
         if stream_is_live:
-            deca
+            decay()
     shutil.copyfile(os.path.join(vote_location, 'vote.json'), "Backups\\" + str(time.time()) + ".json")
 
     # End of Init
