@@ -771,8 +771,8 @@ def decay():
     for vote in vote_data["Profiles"][get_active_profile()].keys():
         if time.time() - seconds_in_a_day * int(MySet.Decay_Days) > \
                 vote_data["Profiles"][get_active_profile()][vote]["last added"]:
-            vote["vote value"] = vote_data["Profiles"][get_active_profile()][vote]["last added"]\
-                                 - int(MySet.Decay_Amount)
+            vote_data["Profiles"][get_active_profile()][vote]["last added"] = \
+                vote_data["Profiles"][get_active_profile()][vote]["last added"] - int(MySet.Decay_Amount)
             if vote_data["Profiles"][get_active_profile()][vote]["last added"] < 0:
                 vote_data["Profiles"][get_active_profile()][vote]["last added"] = 0
     update_vote_data(vote_data)
