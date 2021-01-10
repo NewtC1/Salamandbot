@@ -94,11 +94,13 @@ def Init():
     global cooldown_list
     global active_continuous_adds
     global vote_location
+    global stream_is_live
     active_continuous_adds = dict()
     cooldown_list = dict()
     m_Active = False
     # Load in saved settings
     MySet = Settings(settingsFile)
+    stream_is_live = Parent.IsLive()
 
     # make the vote location if it doesn't exist
     vote_location = os.path.join(os.path.dirname(__file__), '..\\..\\Twitch\\Votes\\')
@@ -131,6 +133,11 @@ def Init():
     if not os.path.exists("Backups"):
         os.mkdir("Backups")
     Parent.Log("Vote Initialization", "Backup created in: " + os.getcwd())
+
+    # decay
+    if MySet.Decay:
+        if stream_is_live:
+            decay()
 
     shutil.copyfile(os.path.join(vote_location, 'vote.json'), "Backups\\" + str(time.time()) + ".json")
 
@@ -441,6 +448,7 @@ def Tick():
     """Required tick function"""
     removals = []
     global cooldown_list
+    global stream_is_live
     # if you're on the cooldown list
     for x in cooldown_list:
         # if dynamic cooldown is enabled
@@ -470,6 +478,15 @@ def Tick():
             # del activeContinuousAdds[each]
         else:
             del cooldown_list[each]
+
+        # decay
+        if MySet.Decay:
+            if not stream_is_live and Parent.IsLive():
+                stream_is_live = True
+                decay()
+
+            if stream_is_live and not Parent.IsLive():
+                stream_is_live = False
 
     return
 
@@ -744,3 +761,13 @@ def get_vote_option_value(option):
         option_value = data["Profiles"][active][option]["vote value"]
 
     return option_value
+
+
+def decay():
+    seconds_in_a_day = 86400
+    vote_data = get_vote_data()
+    for vote in vote_data["Profiles"][get_active_profile()].keys():
+        if time.time() - seconds_in_a_day * int(MySet.Decay_Days) > vote["last added"]:
+            vote["vote value"] = vote["vote value"] - int(MySet.Decay_Amount)
+            if vote["vote value"] < 0:
+                vote["vote value"] = 0

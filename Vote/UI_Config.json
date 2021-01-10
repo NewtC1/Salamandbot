@@ -90,5 +90,26 @@
 		"label": "Display options command?",
 		"tooltip": "What command will the chat use to display all options?",
 		"group": "General"
+	},
+	"Decay": {
+		"type": "checkbox",
+		"value": false,
+		"label": "Decay",
+		"tooltip": "Applies decay to vote values if they aren't touched within a certain time.",
+		"group": "Decay"
+	},
+	"Decay_Days": {
+		"type": "textbox",
+		"value": "7",
+		"label": "Decay Days",
+		"tooltip": "The number of days before decay begins",
+		"group": "Decay"
+	},
+	"Decay_Amount": {
+		"type": "textbox",
+		"value": "1",
+		"lavel": "Decay Amount",
+		"tooltip": "1",
+		"group": "Decay"
 	}
 }
