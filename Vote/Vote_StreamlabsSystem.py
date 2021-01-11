@@ -440,8 +440,10 @@ def Execute(data):
         if data.GetParam(1) == 'get_cooldown' and MySet.get_cooldown == True:
             return_value = get_cooldown(data.GetParam(2))
             Parent.SendStreamMessage(str(return_value))
-        # if data.GetParam(1) == 'get_remaining' and MySet.get_remaining == True:
-        #     retVal =
+        if data.GetParam(1) == 'get_live':
+            return_value = str(get_stream_is_live())
+            Parent.SendStreamMessage("Stream is live: " + return_value)
+            Parent.SendStreamMessage("Stream isLive function: " + str(Parent.IsLive()))
 
     return
 
@@ -477,18 +479,17 @@ def Tick():
                 Parent.SendStreamWhisper(each.lower(),
                                          'You have been removed from the continuous add list due to leaving '
                                          'the stream.')
-            # del activeContinuousAdds[each]
         else:
             del cooldown_list[each]
 
-        # decay
-        if MySet.Decay:
-            if not stream_is_live and Parent.IsLive():
-                stream_is_live = True
-                decay()
+    # decay
+    if MySet.Decay:
+        if stream_is_live == False and Parent.IsLive():
+            stream_is_live = True
+            decay()
 
-            if stream_is_live and not Parent.IsLive():
-                stream_is_live = False
+        if stream_is_live == True and Parent.IsLive() == False:
+            stream_is_live = False
 
     return
 
@@ -716,6 +717,12 @@ def get_cooldown(user):
         return cooldown_list[user.lower()][1] - time_since_vote
     else:
         return float(MySet.cooldownTime) - time_since_vote
+
+
+def get_stream_is_live():
+    global stream_is_live
+
+    return stream_is_live
 
 
 def get_vote_data():
