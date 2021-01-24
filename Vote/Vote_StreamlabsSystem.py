@@ -6,6 +6,7 @@ import json
 import os, os.path
 import operator
 import time
+import datetime
 import re
 import codecs
 import shutil
@@ -30,6 +31,7 @@ Description = "Allows users to vote on options created by the !addvoteoptions co
 # Variables
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
+shieldsFile = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
 
 # ---------------------------------------
 # Classes
@@ -774,17 +776,26 @@ def get_vote_option_value(option):
 
 def decay():
     seconds_in_a_day = 86400
+    decay_threshold = int(MySet.Decay_Days)
+    if os.path.exists(shieldsFile):
+        with open(shieldsFile, encoding="utf-8-sig", mode="r") as f:
+            decay_threshold = int(f.read())
     vote_data = get_vote_data()
     for vote in vote_data["Profiles"][get_active_profile()].keys():
-        elapsed_time = time.time() - (seconds_in_a_day * int(MySet.Decay_Days))
+        elapsed_time = time.time() - vote_data["Profiles"][get_active_profile()][vote]["last added"]
+        # Parent.Log("Decay", "{} has elapsed {} seconds since the last add.".format(vote, elapsed_time))
 
-        if elapsed_time > vote_data["Profiles"][get_active_profile()][vote]["last added"]:
+        if elapsed_time > (seconds_in_a_day * decay_threshold):
 
-            new_value = vote_data["Profiles"][get_active_profile()][vote]["vote value"] - int(MySet.Decay_Amount)
+            days_past_threshold = int((elapsed_time - (seconds_in_a_day * decay_threshold))/seconds_in_a_day)
+            # Parent.Log("Decay", "{} is {} days past the threshold.".format(vote, days_past_threshold))
+            decay_total = int(MySet.Decay_Amount) * days_past_threshold
+
+            new_value = vote_data["Profiles"][get_active_profile()][vote]["vote value"] - decay_total
 
             vote_data["Profiles"][get_active_profile()][vote]["vote value"] = new_value
 
-            Parent.Log("Decay", "Decaying {} by {}".format(vote, MySet.Decay_Amount))
+            Parent.Log("Decay", "Decaying {} by {}".format(vote, decay_total))
 
             # checks if the value is less than 0 and corrects it.
             if vote_data["Profiles"][get_active_profile()][vote]["vote value"] < 0:
