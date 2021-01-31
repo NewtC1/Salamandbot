@@ -154,7 +154,7 @@ def Execute(data):
 
         # !woodchips
         if data.GetParam(0) == MySet.CheckCommand:
-            respond(data, "You have " + str(get_points(data.User)) + " woodchips.")
+            respond(data, "/me You have " + str(get_points(data.User)) + " woodchips.")
 
         # !redeem
         if data.GetParam(0).lower() == MySet.RedeemCommand and data.GetParam(1).lower() in redeemables.keys():
@@ -162,18 +162,29 @@ def Execute(data):
                 if redeemables[data.GetParam(1).lower()].redeem():
                     Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
                 else:
-                    Parent.SendStreamMessage("You don't have enough woodchips for that.")
+                    Parent.SendStreamMessage("/me You don't have enough woodchips for that.")
             if data.GetParamCount() >= 3:
                 if redeemables[data.GetParam(1).lower()].redeem():
                     Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
                 else:
-                    Parent.SendStreamMessage("You don't have enough woodchips for that.")
+                    Parent.SendStreamMessage("/me You don't have enough woodchips for that.")
 
         # !community
         if data.GetParam(0).lower() == "!community" and Parent.HasPermission(sender_user_id, "Caster", ""):
             # Test script: !community create "Test Event" 02-01-2021 10000
             if data.Message == "!community example":
                 Parent.SendStreamMessage("!community create \"Test Event\" 02-01-2021 10000")
+
+            # options
+            if data.Message == "!community options":
+                message = "/me Here are the currently available events: "
+
+                for challenge in load_points()["challenges"].keys():
+                    message += challenge + "({}/{}), ".format(
+                        str(load_points()["challenges"][challenge]["current count"]),
+                        str(load_points()["challenges"][challenge]["success count"]))
+                message = message[:-2]
+                Parent.SendStreamMessage(message)
 
             # create
             match = re.search("!community\screate\s\"(.+)\"\s(\d{2}-\d{2}-\d{4})\s(\d+)", data.Message)
@@ -184,14 +195,14 @@ def Execute(data):
                 try:
                     completion_amount = int(match.group(3))
                 except ValueError as e:
-                    Parent.SendStreamMessage("Look, you have to use an integer. "
+                    Parent.SendStreamMessage("/me Look, you have to use an integer. "
                                              "{} is not that.".format(match.group(3)))
                     return
 
                 if community_challenge.CommunityChallenge(name, date, completion_amount).save_to_file():
-                    Parent.SendStreamMessage("Successfully created \"{}\" community event.".format(name))
+                    Parent.SendStreamMessage("/me Successfully created \"{}\" community event.".format(name))
                 else:
-                    Parent.SendStreamMessage("Failed to create \"{}\" community event.".format(name))
+                    Parent.SendStreamMessage("/me Failed to create \"{}\" community event.".format(name))
 
             # stoke
             stoke_match = re.search("!community\sstoke\s+(\d+)\s(.+)", data.Message)
@@ -200,30 +211,38 @@ def Execute(data):
                 try:
                     amount = int(stoke_match.group(1))
                 except ValueError as e:
-                    Parent.SendStreamMessage("{} is not an integer.".format(stoke_match.group(1)))
+                    Parent.SendStreamMessage("/me {} is not an integer.".format(stoke_match.group(1)))
                     return
 
                 # modify the user's points
-                if get_points(data.User.lower()) < amount:
-                    Parent.SendStreamMessage("You don't have enough woodchips for that. Stick around to earn more.")
+                if not change_points(data.User.lower(), amount*-1):
+                    Parent.SendStreamMessage("/me You don't have enough woodchips for that. Stick around to earn more.")
                     return
-                else:
-                    change_points(data.User.lower(), amount*-1)
 
                 challenge_name = stoke_match.group(2)
 
                 data = load_points()
                 if challenge_name in data["challenges"].keys():
                     data["challenges"][challenge_name]["current count"] += amount
-                    Parent.SendStreamMessage("Stoked the community challenge \"{}\" with {} more woodchips.".format(
+                    Parent.SendStreamMessage("/me Stoked the community challenge \"{}\" with {} more woodchips.".format(
                         challenge_name, amount))
                     if data["challenges"][challenge_name]["current count"] >= \
                             data["challenges"][challenge_name]["success count"]:
-                        Parent.SendStreamMessage("Challenge \"{}\" successfully completed!".format(challenge_name))
+                        Parent.SendStreamMessage("/me Challenge \"{}\" successfully completed!".format(challenge_name))
                         del data["challenges"][challenge_name]
-                        Parent.Log("Community", "Removed the community challenge \"{}\" due to completing.".format(challenge))
+                        Parent.Log("Community", "Removed the community challenge \"{}\" due to completing.".format(challenge_name))
+                    elif data["challenges"][challenge_name]["current count"] >= \
+                         data["challenges"][challenge_name]["success count"] * 0.75:
+                        Parent.SendStreamMessage("/me Challenge \"{}\" has reached 75%!".format(challenge_name))
+                    elif data["challenges"][challenge_name]["current count"] >= \
+                        data["challenges"][challenge_name]["success count"]*0.5:
+                        Parent.SendStreamMessage("/me Challenge \"{}\" has reached 50%!".format(challenge_name))
+                    elif data["challenges"][challenge_name]["current count"] >= \
+                        data["challenges"][challenge_name]["success count"]*0.25:
+                        Parent.SendStreamMessage("/me Challenge \"{}\" has reached 25%!".format(challenge_name))
+
                 else:
-                    Parent.SendStreamMessage("That challenge doesn't exist.")
+                    Parent.SendStreamMessage("/me That challenge doesn't exist.")
 
                 update_points(data)
 
@@ -249,7 +268,7 @@ def Tick():
     for challenge in data["challenges"].keys():
         end_date = datetime.datetime.strptime(data["challenges"][challenge]["end date"], "%m-%d-%Y")
         if end_date < datetime.datetime.now():
-            Parent.SendStreamMessage("Oh no, the \"{}\" community challenge was failed!".format(challenge))
+            Parent.SendStreamMessage("/me Oh no, the \"{}\" community challenge was failed!".format(challenge))
             del data["challenges"][challenge]
             Parent.Log("Community", "Removed the community challenge \"{}\" due to running out of time.".format(challenge))
             update_points(data)
