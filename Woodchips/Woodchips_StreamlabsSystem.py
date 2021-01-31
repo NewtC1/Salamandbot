@@ -108,12 +108,12 @@ def Init():
             result = json.dumps(base_file, f, indent=4)
             f.write(result)
 
-        with open(points_json, "r") as f:
-            Data = json.load(f)
+    data = load_points()
 
-        # create the challenges
-        if "challenges" not in Data.keys():
-            Data["challenges"] = {}
+    # create the challenges if it doesn't already exist.
+    if "challenges" not in data.keys():
+        data["challenges"] = {}
+        update_points(data)
 
     # End of Init
     return
