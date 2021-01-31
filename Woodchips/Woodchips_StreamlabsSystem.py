@@ -8,9 +8,12 @@ import os, os.path
 import codecs
 import time
 import sys
+import re
+import datetime
 
 sys.path.append(os.path.dirname(__file__))
 import redeemable
+import community_challenge
 
 
 # ---------------------------------------
@@ -86,21 +89,31 @@ def Init():
     # Globals
     global MySet
     global LastPayout
+    global Data
     # Load in saved settings
     MySet = Settings(settingsFile)
     LastPayout = time.time()
 
     if not os.path.exists(points_json):
         with open(points_json, "w+") as f:
-            base_file = \
-            {
+            base_file = {
                 "Users": {
+
+                },
+                "challenges": {
 
                 }
             }
 
             result = json.dumps(base_file, f, indent=4)
             f.write(result)
+
+        with open(points_json, "r") as f:
+            Data = json.load(f)
+
+        # create the challenges
+        if "challenges" not in Data.keys():
+            Data["challenges"] = {}
 
     # End of Init
     return
@@ -109,7 +122,15 @@ def Init():
 def Execute(data):
     """Required Execute function, run whenever a user says anything."""
 
-    command = data.GetParam(0)
+    sender_user_id = ""
+    sender_user_display = ""
+    if data.IsFromTwitch():
+        sender_user_id = data.UserName.lower()
+        sender_user_display = data.UserName
+    elif data.IsFromYoutube() or data.IsFromDiscord():
+        sender_user_id = data.User
+        sender_user_display = data.UserName
+
     # redeemables
     redeemables = {
         "recap": redeemable.Redeemable("recap", "Recap that story Newt!", -200, data.User.lower()),
@@ -119,31 +140,92 @@ def Execute(data):
         "break": redeemable.Redeemable("break", "Time to hit the road.", -3000, data.User.lower())
     }
 
-    # moved here for the sake of readability. Also resolves an error related to these options not existing before now.
-    if data.GetParamCount() >= 3:
-        args = " ".join(data.Message.split(" ")[2:])
-        redeemables["add"] = redeemable.Redeemable("add", "Adding your game to the list!", -20000,
-                                                   data.User.lower(), add_to_votes, args)
-        redeemables["move"] = redeemable.Redeemable("move", "Moving " + args + " to the top of the list!", -30000,
-                                                    data.User.lower(), move_option_to_top, args)
-        redeemables["top"] = redeemable.Redeemable("top", "Adding and moving " + args + " to the top of the list!",
-                                                   -45000,
-                                                   data.User.lower(), create_and_move, args)
-
-    if data.GetParam(0) == MySet.CheckCommand:
-        respond(data, "You have " + str(get_points(data.User)) + " woodchips.")
-
-    if data.GetParam(0).lower() == MySet.RedeemCommand and data.GetParam(1).lower() in redeemables.keys():
-        if data.GetParamCount() == 2:
-            if redeemables[data.GetParam(1).lower()].redeem():
-                Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
-            else:
-                Parent.SendStreamMessage("You don't have enough woodchips for that.")
+    if data.IsChatMessage():
+        # moved here for the sake of readability. Also resolves an error related to these options not existing before now.
         if data.GetParamCount() >= 3:
-            if redeemables[data.GetParam(1).lower()].redeem():
-                Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
-            else:
-                Parent.SendStreamMessage("You don't have enough woodchips for that.")
+            args = " ".join(data.Message.split(" ")[2:])
+            redeemables["add"] = redeemable.Redeemable("add", "Adding your game to the list!", -20000,
+                                                       data.User.lower(), add_to_votes, args)
+            redeemables["move"] = redeemable.Redeemable("move", "Moving " + args + " to the top of the list!", -30000,
+                                                        data.User.lower(), move_option_to_top, args)
+            redeemables["top"] = redeemable.Redeemable("top", "Adding and moving " + args + " to the top of the list!",
+                                                       -45000,
+                                                       data.User.lower(), create_and_move, args)
+
+        # !woodchips
+        if data.GetParam(0) == MySet.CheckCommand:
+            respond(data, "You have " + str(get_points(data.User)) + " woodchips.")
+
+        # !redeem
+        if data.GetParam(0).lower() == MySet.RedeemCommand and data.GetParam(1).lower() in redeemables.keys():
+            if data.GetParamCount() == 2:
+                if redeemables[data.GetParam(1).lower()].redeem():
+                    Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
+                else:
+                    Parent.SendStreamMessage("You don't have enough woodchips for that.")
+            if data.GetParamCount() >= 3:
+                if redeemables[data.GetParam(1).lower()].redeem():
+                    Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
+                else:
+                    Parent.SendStreamMessage("You don't have enough woodchips for that.")
+
+        # !community
+        if data.GetParam(0).lower() == "!community" and Parent.HasPermission(sender_user_id, "Caster", ""):
+            # Test script: !community create "Test Event" 02-01-2021 10000
+            if data.Message == "!community example":
+                Parent.SendStreamMessage("!community create \"Test Event\" 02-01-2021 10000")
+
+            # create
+            match = re.search("!community\screate\s\"(.+)\"\s(\d{2}-\d{2}-\d{4})\s(\d+)", data.Message)
+            # Parent.Log("Community", "Searching for a match in {}".format(data.Message))
+            if match is not None:
+                name = match.group(1)
+                date = match.group(2)
+                try:
+                    completion_amount = int(match.group(3))
+                except ValueError as e:
+                    Parent.SendStreamMessage("Look, you have to use an integer. "
+                                             "{} is not that.".format(match.group(3)))
+                    return
+
+                if community_challenge.CommunityChallenge(name, date, completion_amount).save_to_file():
+                    Parent.SendStreamMessage("Successfully created \"{}\" community event.".format(name))
+                else:
+                    Parent.SendStreamMessage("Failed to create \"{}\" community event.".format(name))
+
+            # stoke
+            stoke_match = re.search("!community\sstoke\s+(\d+)\s(.+)", data.Message)
+            if stoke_match is not None:
+                amount = 0
+                try:
+                    amount = int(stoke_match.group(1))
+                except ValueError as e:
+                    Parent.SendStreamMessage("{} is not an integer.".format(stoke_match.group(1)))
+                    return
+
+                # modify the user's points
+                if get_points(data.User.lower()) < amount:
+                    Parent.SendStreamMessage("You don't have enough woodchips for that. Stick around to earn more.")
+                    return
+                else:
+                    change_points(data.User.lower(), amount*-1)
+
+                challenge_name = stoke_match.group(2)
+
+                data = load_points()
+                if challenge_name in data["challenges"].keys():
+                    data["challenges"][challenge_name]["current count"] += amount
+                    Parent.SendStreamMessage("Stoked the community challenge \"{}\" with {} more woodchips.".format(
+                        challenge_name, amount))
+                    if data["challenges"][challenge_name]["current count"] >= \
+                            data["challenges"][challenge_name]["success count"]:
+                        Parent.SendStreamMessage("Challenge \"{}\" successfully completed!".format(challenge_name))
+                        del data["challenges"][challenge_name]
+                        Parent.Log("Community", "Removed the community challenge \"{}\" due to completing.".format(challenge))
+                else:
+                    Parent.SendStreamMessage("That challenge doesn't exist.")
+
+                update_points(data)
 
     return
 
@@ -160,6 +242,17 @@ def Tick():
             change_points(viewer, int(MySet.PayoutRate))
 
         LastPayout = time.time()
+
+    # load in the list of challenges
+    data = load_points()
+
+    for challenge in data["challenges"].keys():
+        end_date = datetime.datetime.strptime(data["challenges"][challenge]["end date"], "%m-%d-%Y")
+        if end_date < datetime.datetime.now():
+            Parent.SendStreamMessage("Oh no, the \"{}\" community challenge was failed!".format(challenge))
+            del data["challenges"][challenge]
+            Parent.Log("Community", "Removed the community challenge \"{}\" due to running out of time.".format(challenge))
+            update_points(data)
 
     return
 
