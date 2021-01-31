@@ -170,7 +170,7 @@ def Execute(data):
                     Parent.SendStreamMessage("/me You don't have enough woodchips for that.")
 
         # !community
-        if data.GetParam(0).lower() == "!community" and Parent.HasPermission(sender_user_id, "Caster", ""):
+        if data.GetParam(0).lower() == "!community":
             # Test script: !community create "Test Event" 02-01-2021 10000
             if data.Message == "!community example":
                 Parent.SendStreamMessage("!community create \"Test Event\" 02-01-2021 10000")
@@ -187,22 +187,23 @@ def Execute(data):
                 Parent.SendStreamMessage(message)
 
             # create
-            match = re.search("!community\screate\s\"(.+)\"\s(\d{2}-\d{2}-\d{4})\s(\d+)", data.Message)
-            # Parent.Log("Community", "Searching for a match in {}".format(data.Message))
-            if match is not None:
-                name = match.group(1)
-                date = match.group(2)
-                try:
-                    completion_amount = int(match.group(3))
-                except ValueError as e:
-                    Parent.SendStreamMessage("/me Look, you have to use an integer. "
-                                             "{} is not that.".format(match.group(3)))
-                    return
+            if Parent.HasPermission(sender_user_id, "Caster", ""):
+                match = re.search("!community\screate\s\"(.+)\"\s(\d{2}-\d{2}-\d{4})\s(\d+)", data.Message)
+                # Parent.Log("Community", "Searching for a match in {}".format(data.Message))
+                if match is not None:
+                    name = match.group(1)
+                    date = match.group(2)
+                    try:
+                        completion_amount = int(match.group(3))
+                    except ValueError as e:
+                        Parent.SendStreamMessage("/me Look, you have to use an integer. "
+                                                 "{} is not that.".format(match.group(3)))
+                        return
 
-                if community_challenge.CommunityChallenge(name, date, completion_amount).save_to_file():
-                    Parent.SendStreamMessage("/me Successfully created \"{}\" community event.".format(name))
-                else:
-                    Parent.SendStreamMessage("/me Failed to create \"{}\" community event.".format(name))
+                    if community_challenge.CommunityChallenge(name, date, completion_amount).save_to_file():
+                        Parent.SendStreamMessage("/me Successfully created \"{}\" community event.".format(name))
+                    else:
+                        Parent.SendStreamMessage("/me Failed to create \"{}\" community event.".format(name))
 
             # stoke
             stoke_match = re.search("!community\sstoke\s+(\d+)\s(.+)", data.Message)
