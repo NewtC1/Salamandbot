@@ -171,6 +171,7 @@ def Execute(data):
 
         # !community
         if data.GetParam(0).lower() == "!community":
+
             # Test script: !community create "Test Event" 02-01-2021 10000
             if data.Message == "!community example":
                 Parent.SendStreamMessage("!community create \"Test Event\" 02-01-2021 10000")
@@ -185,6 +186,7 @@ def Execute(data):
                         str(load_points()["challenges"][challenge]["success count"]))
                 message = message[:-2]
                 Parent.SendStreamMessage(message)
+                return
 
             # create
             if Parent.HasPermission(sender_user_id, "Caster", ""):
