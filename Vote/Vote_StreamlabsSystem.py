@@ -800,4 +800,11 @@ def decay():
             # checks if the value is less than 0 and corrects it.
             if vote_data["Profiles"][get_active_profile()][vote]["vote value"] < 0:
                 vote_data["Profiles"][get_active_profile()][vote]["vote value"] = 0
+
+                if get_active_profile() != "decayed":
+                    # move it to the stone of stories after it runs out of
+                    if "decayed" not in vote_data["Profiles"].keys():
+                        vote_data["Profiles"]["decayed"] = {}
+                    vote_data["Profiles"]["decayed"][vote] = vote_data["Profiles"][get_active_profile()][vote]
+                    del vote_data["Profiles"][get_active_profile()][vote]
     update_vote_data(vote_data)
