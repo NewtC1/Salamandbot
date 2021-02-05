@@ -162,19 +162,19 @@ def Execute(data):
                 if redeemables[data.GetParam(1).lower()].redeem():
                     Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
                 else:
-                    Parent.SendStreamMessage("/me You don't have enough woodchips for that.")
+                    respond(data, "/me You don't have enough woodchips for that.")
             if data.GetParamCount() >= 3:
                 if redeemables[data.GetParam(1).lower()].redeem():
                     Parent.SendStreamMessage(redeemables[data.GetParam(1).lower()].description)
                 else:
-                    Parent.SendStreamMessage("/me You don't have enough woodchips for that.")
+                    respond(data, "/me You don't have enough woodchips for that.")
 
         # !community
         if data.GetParam(0).lower() == "!community":
 
             # Test script: !community create "Test Event" 02-01-2021 10000
             if data.Message == "!community example":
-                Parent.SendStreamMessage("!community create \"Test Event\" 02-01-2021 10000")
+                respond(data, "!community create \"Test Event\" 02-01-2021 10000")
 
             # options
             if data.Message == "!community options":
@@ -185,7 +185,7 @@ def Execute(data):
                         str(load_points()["challenges"][challenge]["current count"]),
                         str(load_points()["challenges"][challenge]["success count"]))
                 message = message[:-2]
-                Parent.SendStreamMessage(message)
+                respond(data, message)
                 return
 
             # create
@@ -198,14 +198,14 @@ def Execute(data):
                     try:
                         completion_amount = int(match.group(3))
                     except ValueError as e:
-                        Parent.SendStreamMessage("/me Look, you have to use an integer. "
+                        respond(data, "/me Look, you have to use an integer. "
                                                  "{} is not that.".format(match.group(3)))
                         return
 
                     if community_challenge.CommunityChallenge(name, date, completion_amount).save_to_file():
-                        Parent.SendStreamMessage("/me Successfully created \"{}\" community event.".format(name))
+                        respond(data, "/me Successfully created \"{}\" community event.".format(name))
                     else:
-                        Parent.SendStreamMessage("/me Failed to create \"{}\" community event.".format(name))
+                        respond(data, "/me Failed to create \"{}\" community event.".format(name))
 
             # stoke
             stoke_match = re.search("!community\sstoke\s+(\d+)\s(.+)", data.Message)
@@ -214,12 +214,12 @@ def Execute(data):
                 try:
                     amount = int(stoke_match.group(1))
                 except ValueError as e:
-                    Parent.SendStreamMessage("/me {} is not an integer.".format(stoke_match.group(1)))
+                    respond(data, "/me {} is not an integer.".format(stoke_match.group(1)))
                     return
 
                 # modify the user's points
                 if not change_points(data.User.lower(), amount*-1):
-                    Parent.SendStreamMessage("/me You don't have enough woodchips for that. Stick around to earn more.")
+                    respond(data, "/me You don't have enough woodchips for that. Stick around to earn more.")
                     return
 
                 challenge_name = stoke_match.group(2)
@@ -227,25 +227,25 @@ def Execute(data):
                 data = load_points()
                 if challenge_name in data["challenges"].keys():
                     data["challenges"][challenge_name]["current count"] += amount
-                    Parent.SendStreamMessage("/me Stoked the community challenge \"{}\" with {} more woodchips.".format(
+                    respond(data, "/me Stoked the community challenge \"{}\" with {} more woodchips.".format(
                         challenge_name, amount))
                     if data["challenges"][challenge_name]["current count"] >= \
                             data["challenges"][challenge_name]["success count"]:
-                        Parent.SendStreamMessage("/me Challenge \"{}\" successfully completed!".format(challenge_name))
+                        respond(data, "/me Challenge \"{}\" successfully completed!".format(challenge_name))
                         del data["challenges"][challenge_name]
                         Parent.Log("Community", "Removed the community challenge \"{}\" due to completing.".format(challenge_name))
                     elif data["challenges"][challenge_name]["current count"] >= \
                          data["challenges"][challenge_name]["success count"] * 0.75:
-                        Parent.SendStreamMessage("/me Challenge \"{}\" has reached 75%!".format(challenge_name))
+                        respond(data, "/me Challenge \"{}\" has reached 75%!".format(challenge_name))
                     elif data["challenges"][challenge_name]["current count"] >= \
                         data["challenges"][challenge_name]["success count"]*0.5:
-                        Parent.SendStreamMessage("/me Challenge \"{}\" has reached 50%!".format(challenge_name))
+                        respond(data, "/me Challenge \"{}\" has reached 50%!".format(challenge_name))
                     elif data["challenges"][challenge_name]["current count"] >= \
                         data["challenges"][challenge_name]["success count"]*0.25:
-                        Parent.SendStreamMessage("/me Challenge \"{}\" has reached 25%!".format(challenge_name))
+                        respond(data, "/me Challenge \"{}\" has reached 25%!".format(challenge_name))
 
                 else:
-                    Parent.SendStreamMessage("/me That challenge doesn't exist.")
+                    respond(data, "/me That challenge doesn't exist.")
 
                 update_points(data)
 
