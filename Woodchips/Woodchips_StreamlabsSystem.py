@@ -269,6 +269,11 @@ def Tick():
     data = load_points()
 
     for challenge in data["challenges"].keys():
+        # month = int(data["challenges"][challenge]["end date"].split('-')[0])
+        # day = int(data["challenges"][challenge]["end date"].split('-')[1])
+        # year = int(data["challenges"][challenge]["end date"].split('-')[2])
+        # Parent.SendStreamMessage("{}-{}-{}".format(month, day, year))
+        # end_date = datetime.date(year, month, day)
         end_date = datetime.datetime.strptime(data["challenges"][challenge]["end date"], "%m-%d-%Y")
         if end_date < datetime.datetime.now():
             Parent.SendStreamMessage("/me Oh no, the \"{}\" community challenge was failed!".format(challenge))
