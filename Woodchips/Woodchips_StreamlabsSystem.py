@@ -10,6 +10,7 @@ import time
 import sys
 import re
 import datetime
+import shutil
 
 sys.path.append(os.path.dirname(__file__))
 import redeemable
@@ -114,6 +115,12 @@ def Init():
     if "challenges" not in data.keys():
         data["challenges"] = {}
         update_points(data)
+
+    Parent.Log("Woodchips Initialization", "Creating backup points list.")
+    if not os.path.exists("Backups"):
+        os.mkdir("Backups")
+    Parent.Log("Woodchips Initialization", "Backup created in: " + os.getcwd())
+    shutil.copyfile(os.path.join(points_json), "Backups\\" + str(time.time()) + ".json")
 
     # End of Init
     return
@@ -224,30 +231,30 @@ def Execute(data):
 
                 challenge_name = stoke_match.group(2)
 
-                data = load_points()
-                if challenge_name in data["challenges"].keys():
-                    data["challenges"][challenge_name]["current count"] += amount
+                points_data = load_points()
+                if challenge_name in points_data["challenges"].keys():
+                    points_data["challenges"][challenge_name]["current count"] += amount
                     respond(data, "/me Stoked the community challenge \"{}\" with {} more woodchips.".format(
                         challenge_name, amount))
-                    if data["challenges"][challenge_name]["current count"] >= \
-                            data["challenges"][challenge_name]["success count"]:
+                    if points_data["challenges"][challenge_name]["current count"] >= \
+                            points_data["challenges"][challenge_name]["success count"]:
                         respond(data, "/me Challenge \"{}\" successfully completed!".format(challenge_name))
-                        del data["challenges"][challenge_name]
+                        del points_data["challenges"][challenge_name]
                         Parent.Log("Community", "Removed the community challenge \"{}\" due to completing.".format(challenge_name))
-                    elif data["challenges"][challenge_name]["current count"] >= \
-                         data["challenges"][challenge_name]["success count"] * 0.75:
+                    elif points_data["challenges"][challenge_name]["current count"] >= \
+                         points_data["challenges"][challenge_name]["success count"] * 0.75:
                         respond(data, "/me Challenge \"{}\" has reached 75%!".format(challenge_name))
-                    elif data["challenges"][challenge_name]["current count"] >= \
-                        data["challenges"][challenge_name]["success count"]*0.5:
+                    elif points_data["challenges"][challenge_name]["current count"] >= \
+                        points_data["challenges"][challenge_name]["success count"]*0.5:
                         respond(data, "/me Challenge \"{}\" has reached 50%!".format(challenge_name))
-                    elif data["challenges"][challenge_name]["current count"] >= \
-                        data["challenges"][challenge_name]["success count"]*0.25:
+                    elif points_data["challenges"][challenge_name]["current count"] >= \
+                        points_data["challenges"][challenge_name]["success count"]*0.25:
                         respond(data, "/me Challenge \"{}\" has reached 25%!".format(challenge_name))
 
                 else:
                     respond(data, "/me That challenge doesn't exist.")
 
-                update_points(data)
+                update_points(points_data)
 
     return
 
@@ -266,20 +273,20 @@ def Tick():
         LastPayout = time.time()
 
     # load in the list of challenges
-    data = load_points()
+    points_data = load_points()
 
-    for challenge in data["challenges"].keys():
+    for challenge in points_data["challenges"].keys():
         # month = int(data["challenges"][challenge]["end date"].split('-')[0])
         # day = int(data["challenges"][challenge]["end date"].split('-')[1])
         # year = int(data["challenges"][challenge]["end date"].split('-')[2])
         # Parent.SendStreamMessage("{}-{}-{}".format(month, day, year))
         # end_date = datetime.date(year, month, day)
-        end_date = datetime.datetime.strptime(data["challenges"][challenge]["end date"], "%m-%d-%Y")
+        end_date = datetime.datetime.strptime(points_data["challenges"][challenge]["end date"], "%m-%d-%Y")
         if end_date < datetime.datetime.now():
             Parent.SendStreamMessage("/me Oh no, the \"{}\" community challenge was failed!".format(challenge))
-            del data["challenges"][challenge]
+            del points_data["challenges"][challenge]
             Parent.Log("Community", "Removed the community challenge \"{}\" due to running out of time.".format(challenge))
-            update_points(data)
+            update_points(points_data)
 
     return
 
