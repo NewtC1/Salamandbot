@@ -134,15 +134,15 @@ def Init():
     if not os.path.exists(os.path.join(vote_location, 'vote.json')):
         os.system("python " + os.path.join(os.path.dirname(__file__), 'json_converter.py'))
 
-    Parent.Log("Vote Initialization","Creating backups vote list.")
-    if not os.path.exists("Backups"):
-        os.mkdir("Backups")
-    Parent.Log("Vote Initialization", "Backup created in: " + os.getcwd())
-
     # decay
     if MySet.Decay:
         if stream_is_live:
             decay()
+
+    Parent.Log("Vote Initialization","Creating backup vote list.")
+    if not os.path.exists("Backups"):
+        os.mkdir("Backups")
+    Parent.Log("Vote Initialization", "Backup created in: " + os.getcwd())
     shutil.copyfile(os.path.join(vote_location, 'vote.json'), "Backups\\" + str(time.time()) + ".json")
 
     # End of Init
