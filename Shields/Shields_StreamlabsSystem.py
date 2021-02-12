@@ -29,7 +29,7 @@ Description = "Adds a constant increase in the currency gain rate based on the v
 # Variables
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
-
+shieldsFile = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
 
 # ---------------------------------------
 # Classes
@@ -94,8 +94,7 @@ def Init():
     BasePayout = 0
     global PayoutMultiplier
     PayoutMultiplier = 1.0
-    global shieldsFile
-    shieldsFile = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
+
 
     # Load in saved settings
     MySet = Settings(settingsFile)
@@ -116,7 +115,6 @@ def Tick():
     global PayoutInterval
     global BasePayout
     global PayoutMultiplier
-    global shieldsFile
 
     # if the last payout was more than the interval's time ago, payout now.
     if time.time() - LastPayout > PayoutInterval and Parent.IsLive() is True:
