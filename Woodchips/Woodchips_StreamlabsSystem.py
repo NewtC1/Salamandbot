@@ -91,9 +91,11 @@ def Init():
     global MySet
     global LastPayout
     global Data
+    global DisplayCount
     # Load in saved settings
     MySet = Settings(settingsFile)
     LastPayout = time.time()
+    DisplayCount = 3
 
     if not os.path.exists(points_json):
         with open(points_json, "w+") as f:
@@ -184,7 +186,7 @@ def Execute(data):
                 respond(data, "!community create \"Test Event\" 02-01-2021 10000")
 
             # options
-            if data.Message == "!community options":
+            if data.Message == "!community options" or "!community":
                 message = "/me Here are the currently available events: "
 
                 for challenge in load_points()["challenges"].keys():
@@ -233,24 +235,19 @@ def Execute(data):
 
                 points_data = load_points()
                 if challenge_name in points_data["challenges"].keys():
+                    current_points = points_data["challenges"][challenge_name]["current count"]
+                    success_points = points_data["challenges"][challenge_name]["success count"]
+
                     points_data["challenges"][challenge_name]["current count"] += amount
-                    respond(data, "/me Stoked the community challenge \"{}\" with {} more woodchips.".format(
-                        challenge_name, amount))
-                    if points_data["challenges"][challenge_name]["current count"] >= \
-                            points_data["challenges"][challenge_name]["success count"]:
+                    percent = (float(points_data["challenges"][challenge_name]["current count"])/float(success_points))*100
+                    respond(data, "/me Stoked the community challenge \"{}\" with {} more woodchips. Challenge is now at {}%".format(
+                        challenge_name, amount, percent))
+
+                    if current_points >= \
+                            success_points:
                         respond(data, "/me Challenge \"{}\" successfully completed!".format(challenge_name))
                         del points_data["challenges"][challenge_name]
                         Parent.Log("Community", "Removed the community challenge \"{}\" due to completing.".format(challenge_name))
-                    elif points_data["challenges"][challenge_name]["current count"] >= \
-                         points_data["challenges"][challenge_name]["success count"] * 0.75:
-                        respond(data, "/me Challenge \"{}\" has reached 75%!".format(challenge_name))
-                    elif points_data["challenges"][challenge_name]["current count"] >= \
-                        points_data["challenges"][challenge_name]["success count"]*0.5:
-                        respond(data, "/me Challenge \"{}\" has reached 50%!".format(challenge_name))
-                    elif points_data["challenges"][challenge_name]["current count"] >= \
-                        points_data["challenges"][challenge_name]["success count"]*0.25:
-                        respond(data, "/me Challenge \"{}\" has reached 25%!".format(challenge_name))
-
                 else:
                     respond(data, "/me That challenge doesn't exist.")
 
@@ -263,6 +260,18 @@ def Tick():
     """Required tick function, run whenever possible."""
     global MySet
     global LastPayout
+    global DisplayCount
+
+    if DisplayCount > 2:
+        DisplayCount = 0
+        message = "/me Here are the currently available events: "
+
+        for challenge in load_points()["challenges"].keys():
+            message += challenge + "({}/{}), ".format(
+                str(load_points()["challenges"][challenge]["current count"]),
+                str(load_points()["challenges"][challenge]["success count"]))
+        message = message[:-2]
+        Parent.SendStreamMessage(message)
 
     # if the last payout was more than the interval's time ago, payout now.
     if time.time() - LastPayout > int(MySet.PayoutInterval) and Parent.IsLive():
@@ -271,6 +280,7 @@ def Tick():
             change_points(viewer, int(MySet.PayoutRate))
 
         LastPayout = time.time()
+        DisplayCount += 1
 
     # load in the list of challenges
     points_data = load_points()
