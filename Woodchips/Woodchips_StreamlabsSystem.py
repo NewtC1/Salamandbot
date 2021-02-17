@@ -186,7 +186,7 @@ def Execute(data):
                 respond(data, "!community create \"Test Event\" 02-01-2021 10000")
 
             # options
-            if data.Message == "!community options" or "!community":
+            if data.Message == "!community options":
                 message = "/me Here are the currently available events: "
 
                 for challenge in load_points()["challenges"].keys():
