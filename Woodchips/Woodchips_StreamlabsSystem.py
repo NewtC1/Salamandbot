@@ -122,7 +122,7 @@ def Init():
     if not os.path.exists("Backups"):
         os.mkdir("Backups")
     Parent.Log("Woodchips Initialization", "Backup created in: " + os.getcwd())
-    shutil.copyfile(os.path.join(points_json), "Backups\\" + str(time.time()) + ".json")
+    shutil.copyfile(os.path.join(points_json), "Backups\\Woodchips_" + str(time.time()) + ".json")
 
     # End of Init
     return
@@ -217,11 +217,11 @@ def Execute(data):
                         respond(data, "/me Failed to create \"{}\" community event.".format(name))
 
             # stoke
-            stoke_match = re.search("!community\sstoke\s+(\d+)\s(.+)", data.Message)
+            stoke_match = re.search("!community stoke ((\w+\s){1,})(\d+)", data.Message)
             if stoke_match is not None:
                 amount = 0
                 try:
-                    amount = int(stoke_match.group(1))
+                    amount = int(stoke_match.group(3))
                 except ValueError as e:
                     respond(data, "/me {} is not an integer.".format(stoke_match.group(1)))
                     return
@@ -231,7 +231,7 @@ def Execute(data):
                     respond(data, "/me You don't have enough woodchips for that. Stick around to earn more.")
                     return
 
-                challenge_name = stoke_match.group(2)
+                challenge_name = stoke_match.group(1)[0:-1]
 
                 points_data = load_points()
                 if challenge_name in points_data["challenges"].keys():
