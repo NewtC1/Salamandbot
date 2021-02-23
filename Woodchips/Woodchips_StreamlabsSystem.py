@@ -108,7 +108,7 @@ def Init():
                 }
             }
 
-            result = json.dumps(base_file, f, indent=4)
+            result = json.dumps(base_file, f, encoding="utf-8-sig", indent=4)
             f.write(result)
 
     data = load_points()
@@ -414,4 +414,4 @@ def move_option_to_top(option):
 
 def create_and_move(option):
     add_to_votes(option)
-    move_option_to_top(option)
+    move
