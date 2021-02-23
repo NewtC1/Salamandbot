@@ -143,7 +143,7 @@ def Init():
     if not os.path.exists("Backups"):
         os.mkdir("Backups")
     Parent.Log("Vote Initialization", "Backup created in: " + os.getcwd())
-    shutil.copyfile(os.path.join(vote_location, 'vote.json'), "Backups\\" + str(time.time()) + ".json")
+    shutil.copyfile(os.path.join(vote_location, 'vote.json'), "Backups\\Logs_" + str(time.time()) + ".json")
 
     # End of Init
     return
