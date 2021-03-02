@@ -275,7 +275,7 @@ def Tick():
 
     # if the last payout was more than the interval's time ago, payout now.
     if time.time() - LastPayout > int(MySet.PayoutInterval) and Parent.IsLive():
-        Parent.Log("Woodchips", "Tick")
+        # Parent.Log("Woodchips", "Tick")
         for viewer in set(Parent.GetViewerList()):
             change_points(viewer, int(MySet.PayoutRate))
 
@@ -414,4 +414,5 @@ def move_option_to_top(option):
 
 def create_and_move(option):
     add_to_votes(option)
-    move
+    move_option_to_top(option)
+
