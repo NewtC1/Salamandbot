@@ -32,6 +32,7 @@ Description = "Allows users to vote on options created by the !addvoteoptions co
 # ---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
 shieldsFile = os.path.join(os.path.dirname(__file__), '../../Twitch/shields.txt')
+points_json = os.path.join(os.path.dirname(__file__), "points.json")
 
 # ---------------------------------------
 # Classes
@@ -232,7 +233,7 @@ def Execute(data):
         respond(data, return_value)
 
     # showvoteprofile
-    if data.GetParam(0).lower() == "!showvoteprofile":
+    if data.GetParam(0).lower() == ("!showvoteprofile" or "!showvoteprofiles" or "!displayvoteprofile"):
         vote_data = get_vote_data()
         for profile in vote_data["Profiles"].keys():
             return_value += profile + ', '
@@ -243,6 +244,10 @@ def Execute(data):
     # !checkoptions
     if data.IsChatMessage() and data.GetParam(0).lower() == MySet.CheckOptionsCommand:
         check_options(data)
+        return
+
+    # !whittle
+    if data.IsChatMessage() and data.GetParam(0).lower() == "!whittle":
         return
 
     # vote
@@ -720,7 +725,6 @@ def get_cooldown(user):
     else:
         return float(MySet.cooldownTime) - time_since_vote
 
-
 def get_stream_is_live():
     global stream_is_live
 
@@ -743,7 +747,7 @@ def vote_exists(target):
 
 
 def update_vote_data(data):
-    Parent.Log("update_vote_data", "Adding the following Data structure: " + str(data))
+    # Parent.Log("update_vote_data", "Adding the following Data structure: " + str(data))
     with codecs.open(os.path.join(vote_location, "vote.json"), mode='w+') as f:
         output = json.dumps(data, f, indent=2, encoding='utf-8-sig')
         f.write(output)
@@ -775,36 +779,92 @@ def get_vote_option_value(option):
 
 
 def decay():
+
     seconds_in_a_day = 86400
     decay_threshold = int(MySet.Decay_Days)
-    if os.path.exists(shieldsFile):
-        with open(shieldsFile, encoding="utf-8-sig", mode="r") as f:
-            decay_threshold = int(f.read())
-    vote_data = get_vote_data()
-    for vote in vote_data["Profiles"][get_active_profile()].keys():
-        elapsed_time = time.time() - vote_data["Profiles"][get_active_profile()][vote]["last added"]
-        # Parent.Log("Decay", "{} has elapsed {} seconds since the last add.".format(vote, elapsed_time))
 
-        if elapsed_time > (seconds_in_a_day * decay_threshold):
+    last_decay = 0
+    if "Last Decay" in get_vote_data().keys():
+        last_decay = get_vote_data()["Last Decay"]
+    else:
+        vote_data = get_vote_data()
+        vote_data["Last Decay"] = time.time()
+        update_vote_data()
 
-            days_past_threshold = int((elapsed_time - (seconds_in_a_day * decay_threshold))/seconds_in_a_day)
-            # Parent.Log("Decay", "{} is {} days past the threshold.".format(vote, days_past_threshold))
-            decay_total = int(MySet.Decay_Amount) * days_past_threshold
+    if time.time() - last_decay > seconds_in_a_day:
+        if os.path.exists(shieldsFile):
+            with open(shieldsFile, encoding="utf-8-sig", mode="r") as f:
+                decay_threshold = int(f.read())
+        vote_data = get_vote_data()
+        for vote in vote_data["Profiles"][get_active_profile()].keys():
+            elapsed_time = time.time() - vote_data["Profiles"][get_active_profile()][vote]["last added"]
+            # Parent.Log("Decay", "{} has elapsed {} seconds since the last add.".format(vote, elapsed_time))
 
-            new_value = vote_data["Profiles"][get_active_profile()][vote]["vote value"] - decay_total
+            if elapsed_time > (seconds_in_a_day * decay_threshold):
 
-            vote_data["Profiles"][get_active_profile()][vote]["vote value"] = new_value
+                days_past_threshold = int((elapsed_time - (seconds_in_a_day * decay_threshold))/seconds_in_a_day)
+                # Parent.Log("Decay", "{} is {} days past the threshold.".format(vote, days_past_threshold))
+                decay_total = int(MySet.Decay_Amount) * days_past_threshold
 
-            Parent.Log("Decay", "Decaying {} by {}".format(vote, decay_total))
+                new_value = vote_data["Profiles"][get_active_profile()][vote]["vote value"] - decay_total
 
-            # checks if the value is less than 0 and corrects it.
-            if vote_data["Profiles"][get_active_profile()][vote]["vote value"] < 0:
-                vote_data["Profiles"][get_active_profile()][vote]["vote value"] = 0
+                vote_data["Profiles"][get_active_profile()][vote]["vote value"] = new_value
 
-                if get_active_profile() != "decayed":
-                    # move it to the stone of stories after it runs out of
-                    if "decayed" not in vote_data["Profiles"].keys():
-                        vote_data["Profiles"]["decayed"] = {}
-                    vote_data["Profiles"]["decayed"][vote] = vote_data["Profiles"][get_active_profile()][vote]
-                    del vote_data["Profiles"][get_active_profile()][vote]
-    update_vote_data(vote_data)
+                Parent.Log("Decay", "Decaying {} by {}".format(vote, decay_total))
+
+                # checks if the value is less than 0 and corrects it.
+                if vote_data["Profiles"][get_active_profile()][vote]["vote value"] < 0:
+                    vote_data["Profiles"][get_active_profile()][vote]["vote value"] = 0
+
+                    if get_active_profile() != "decayed":
+                        # move it to the stone of stories after it runs out of
+                        if "decayed" not in vote_data["Profiles"].keys():
+                            vote_data["Profiles"]["decayed"] = {}
+                        vote_data["Profiles"]["decayed"][vote] = vote_data["Profiles"][get_active_profile()][vote]
+                        del vote_data["Profiles"][get_active_profile()][vote]
+
+        vote_data["Last Decay"] = time.time()
+        update_vote_data(vote_data)
+
+def change_points(user, amount):
+    points = load_points()
+
+    if user in points["Users"].keys():
+        if (points["Users"][user] + amount) < 0:
+            return False
+
+    if user in points["Users"].keys():
+        points["Users"][user] += amount
+    else:
+        points["Users"][user] = amount
+
+    update_points(points)
+
+    return True
+
+
+def load_points():
+    """Loads the points json."""
+
+    with open(points_json, "r") as json_file:
+        points = json.load(json_file, encoding="utf-8-sig")
+
+    return points
+
+
+def update_points(points_data):
+    """Saves the data."""
+    with open(points_json, "w+") as json_file:
+        points = json.dumps(points_data, json_file, encoding="utf-8-sig", indent=4)
+        json_file.write(points)
+
+    return points
+
+
+def get_points(user):
+    points = load_points()
+
+    if user in points["Users"].keys():
+        return points["Users"][user]
+    else:
+        return 0
