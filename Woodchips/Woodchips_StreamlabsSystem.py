@@ -262,7 +262,7 @@ def Tick():
     global LastPayout
     global DisplayCount
 
-    if DisplayCount > 2:
+    if DisplayCount > 5:
         DisplayCount = 0
         message = "/me Here are the currently available events: "
 
