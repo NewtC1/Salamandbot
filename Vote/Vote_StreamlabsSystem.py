@@ -789,7 +789,7 @@ def decay():
     else:
         vote_data = get_vote_data()
         vote_data["Last Decay"] = time.time()
-        update_vote_data()
+        update_vote_data(vote_data)
 
     if time.time() - last_decay > seconds_in_a_day:
         if os.path.exists(shieldsFile):
