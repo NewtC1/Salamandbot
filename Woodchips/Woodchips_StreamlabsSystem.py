@@ -108,8 +108,7 @@ def Init():
                 }
             }
 
-            result = json.dumps(base_file, f, encoding="utf-8-sig", indent=4)
-            f.write(result)
+            json.dump(base_file, f, encoding="utf-8-sig", indent=4)
 
     data = load_points()
 
@@ -243,15 +242,16 @@ def Execute(data):
                     respond(data, "/me Stoked the community challenge \"{}\" with {} more woodchips. Challenge is now at {}%".format(
                         challenge_name, amount, percent))
 
-                    if current_points >= \
-                            success_points:
+                    if current_points >= success_points:
                         respond(data, "/me Challenge \"{}\" successfully completed!".format(challenge_name))
                         del points_data["challenges"][challenge_name]
                         Parent.Log("Community", "Removed the community challenge \"{}\" due to completing.".format(challenge_name))
+
+                    update_points(points_data)
                 else:
                     respond(data, "/me That challenge doesn't exist.")
 
-                update_points(points_data)
+
 
     return
 
@@ -349,10 +349,7 @@ def load_points():
 def update_points(points_data):
     """Saves the data."""
     with open(points_json, "w+") as json_file:
-        points = json.dumps(points_data, json_file, encoding="utf-8-sig", indent=4)
-        json_file.write(points)
-
-    return points
+        json.dump(points_data, json_file, encoding="utf-8-sig", indent=4)
 
 
 def get_points(user):
@@ -415,4 +412,3 @@ def move_option_to_top(option):
 def create_and_move(option):
     add_to_votes(option)
     move_option_to_top(option)
-
