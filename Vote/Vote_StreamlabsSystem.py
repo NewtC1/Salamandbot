@@ -780,7 +780,7 @@ def get_vote_option_value(option):
 
 def decay():
 
-    seconds_in_a_day = 86400
+    seconds_in_a_day = 86400/2
     decay_threshold = int(MySet.Decay_Days)
 
     last_decay = 0
