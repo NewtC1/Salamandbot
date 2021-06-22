@@ -29,6 +29,7 @@ Description = "Allows users to select stories for me to tell"
 #---------------------------------------
 settingsFile = os.path.join(os.path.dirname(__file__), "settings.json")
 story_file = os.path.join(os.path.dirname(__file__), "stories.json")
+pending_file = os.path.join(os.path.dirname(__file__), "pending.json")
 
 #---------------------------------------
 # Classes
@@ -130,6 +131,12 @@ def Init():
         with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
             json.dump(data, f, encoding='utf-8-sig', indent=2)
 
+    if not os.path.exists(pending_file):
+        Parent.SendStreamMessage("No pending file found. Creating a new one.")
+        data = {}
+        with codecs.open(pending_file, encoding='utf-8-sig', mode='w+') as f:
+            json.dump(data, f, encoding='utf-8-sig', indent=2)
+
     # convert_to_new_format()
 
     # End of Init
@@ -202,9 +209,10 @@ def Execute(data):
                         add_story(data_input, info, contributor)
                 if data.GetParam(1).lower() == ("remove" or "subtract"):
                     remove_story(data_input)
-                if data.GetParam(1).lower() == ("restore"):
+                if data.GetParam(1).lower() == "restore":
                     re_add(data_input)
-
+                if data.GetParam(1).lower() == "approve":
+                    approve_story(data_input)
 
         if data.GetParam(0).lower()[0] == '!':
             if data.GetParam(0).lower()[1:] in load_story_list():
@@ -244,9 +252,18 @@ def respond(data, output):
         else:
             Parent.SendStreamMessage(str(retVal))
 
+
 def load_story_list():
     """Returns a the list of counters as a settings object"""
     with codecs.open(story_file, encoding='utf-8-sig', mode='r') as f:
+        data = json.load(f, encoding='utf-8-sig')
+
+    return data
+
+
+def load_pending_list():
+    """Returns a the list of counters as a settings object"""
+    with codecs.open(pending_file, encoding='utf-8-sig', mode='r') as f:
         data = json.load(f, encoding='utf-8-sig')
 
     return data
@@ -271,8 +288,10 @@ def display_story_list():
 
     return retval
 
-# returns a list of selected stories
+
 def parse_selected_stories():
+    # returns a list of selected stories
+
     global selected_stories
     retval = ''
     if len(selected_stories) != 0:
@@ -377,12 +396,12 @@ def roll_unselected_story():
 def add_story(story, info, contributor):
     retval = False
     # if the counter already exists
-    if story in load_story_list():
+    if story in load_pending_list() or load_story_list():
         Parent.SendStreamMessage("That story already exists.")
     # else if the counter does not exist
     else:
         # add the counter to the counters.json
-        counter_list = load_story_list()
+        counter_list = load_pending_list()
         storyname = story.lower()
         counter_list[storyname] = {}
         counter_list[storyname]["info"] = info
@@ -393,13 +412,38 @@ def add_story(story, info, contributor):
         Parent.AddPoints(contributor, contributor, int(MySet.SubmissionReward))
 
         # save the story
-        with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
+        with codecs.open(pending_file, encoding='utf-8-sig', mode='w+') as f:
             json.dump(counter_list, f, encoding='utf-8-sig', indent=2)
-        Parent.SendStreamMessage('Story "' + story_name(story) + '" successfully created.')
+        Parent.SendStreamMessage('Story "' + story_name(story) +
+                                 '" successfully created. It has been stored in pending.')
 
         retval = True
 
     return retval
+
+
+def approve_story(story):
+    """
+    Moves a story from the pending file to the story file.
+    :param story: The story to approve.
+    :return:
+    """
+
+    pending_data = load_pending_list()
+    story_to_approve = pending_data[story.lower()]
+    del pending_file[story.lower()]
+
+    with codecs.open(pending_file, encoding='utf-8-sig', mode='w+') as f:
+        json.dump(pending_data, f, encoding='utf-8-sig', indent=2)
+
+    story_data = load_story_list()
+    story_data[story.lower()] = story_to_approve
+
+    # save the story
+    with codecs.open(story_file, encoding='utf-8-sig', mode='w+') as f:
+        json.dump(story_data, f, encoding='utf-8-sig', indent=2)
+    Parent.SendStreamMessage('Story "' + story_name(story) + '" successfully created.')
+
 
 # remove a story from the list
 def remove_story(story):
