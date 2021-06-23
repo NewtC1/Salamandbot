@@ -163,7 +163,7 @@ def Execute(data):
             title = ' '.join(data_input)
             data_input = '_'.join(data_input).lower()
 
-            # to word commands
+            # two word commands
             if data.GetParamCount() == 2:
                 if data.GetParam(1).lower() == "display":
                     respond(data, display_story_list())
@@ -176,6 +176,8 @@ def Execute(data):
                             story_timer = time.time() + 3600
                         else:
                             roll_unselected_story()
+                if data.GetParam(1).lower() == "pending":
+                    respond(data, display_pending_list())
 
             # single word commands
             if data.GetParamCount() == 1:
@@ -271,6 +273,27 @@ def load_pending_list():
 # display all available stories
 def display_story_list():
     data = load_story_list()
+    retval = ''
+    for key in data.keys():
+        upper = ''
+        # uppercase every first letter
+        for word in key.split("_"):
+            output = word.replace(word[0], word[0].upper(), 1)
+            upper += output + " "
+
+        # get rid of the last space
+        upper = upper[:-1]
+        retval += upper + ', '
+
+    retval = retval.replace('_', ' ')
+    retval = retval[:-2]
+
+    return retval
+
+
+# display all available stories
+def display_pending_list():
+    data = load_pending_list()
     retval = ''
     for key in data.keys():
         upper = ''
