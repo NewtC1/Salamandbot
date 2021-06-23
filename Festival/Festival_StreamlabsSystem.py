@@ -178,6 +178,8 @@ def Execute(data):
                             roll_unselected_story()
                 if data.GetParam(1).lower() == "pending":
                     respond(data, display_pending_list())
+                if data.GetParam(1).lower() == "links":
+                    respond(data, display_pending_links())
 
             # single word commands
             if data.GetParamCount() == 1:
@@ -308,6 +310,20 @@ def display_pending_list():
 
     retval = retval.replace('_', ' ')
     retval = retval[:-2]
+
+    return retval
+
+
+def display_pending_links():
+    data = load_pending_list()
+    retval = ''
+    for key in data.keys():
+        upper = ''
+        output = key + ": " + data[key]
+
+        # get rid of the last space
+        upper = upper[:-1]
+        retval += upper + ' , '
 
     return retval
 
