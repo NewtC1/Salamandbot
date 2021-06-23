@@ -318,12 +318,13 @@ def display_pending_links():
     data = load_pending_list()
     retval = ''
     for key in data.keys():
-        upper = ''
-        output = key + ": " + data[key]
+        output = key + ": " + data[key]["info"]
 
         # get rid of the last space
-        upper = upper[:-1]
-        retval += upper + ' , '
+        output = output[:-1]
+        retval += output + ' , '
+
+    retval = retval[:-2]
 
     return retval
 
