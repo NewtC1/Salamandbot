@@ -324,7 +324,7 @@ def display_pending_links():
         output = output[:-1]
         retval += output + ' , '
 
-    retval = retval[:-2]
+    retval = retval[:-1]
 
     return retval
 
