@@ -321,7 +321,6 @@ def display_pending_links():
         output = key + ": " + data[key]["info"]
 
         # get rid of the last space
-        output = output[:-1]
         retval += output + ' , '
 
     return retval
